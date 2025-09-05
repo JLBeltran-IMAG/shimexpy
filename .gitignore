@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local development settings
+.env
+.env.local
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# macOS system files
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Documentation
+docs/_build/
+
+# Local development files
+*.sqlite3
+*.db
