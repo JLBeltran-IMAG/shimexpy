@@ -1,3 +1,8 @@
+# folders no included in git
+__pycache__/
+*.pyc
+*.egg-info/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -6,7 +11,9 @@ __pycache__/
 # Distribution / packaging
 dist/
 build/
+**/build/
 *.egg-info/
+**/*.egg-info/
 
 # Virtual environments
 venv/
