@@ -1,0 +1,41 @@
+Metadata-Version: 2.4
+Name: shimexpy
+Version: 0.1.0
+Summary: A Python package for spatial harmonics X-ray imaging.
+Author: Jorge Luis Beltran Diaz
+License: Apache License 2.0
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Operating System :: POSIX :: Linux
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: xarray
+Requires-Dist: dask
+Requires-Dist: cupy-cuda12x
+Requires-Dist: matplotlib
+Requires-Dist: scikit-image
+Requires-Dist: tifffile
+Requires-Dist: scipy
+Requires-Dist: cvxpy
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: setuptools; extra == "dev"
+Dynamic: author
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: license
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+Holaaaaaaaaa

@@ -1,0 +1,6 @@
+backup_before_refactor
+build
+examples
+results
+shimexpy
+tests

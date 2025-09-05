@@ -1,0 +1,56 @@
+{
+  "harmonic_00": [
+    1743,
+    2615,
+    1196,
+    1794
+  ],
+  "harmonic_vertical_negative": [
+    900,
+    1772,
+    1196,
+    1794
+  ],
+  "harmonic_vertical_positive": [
+    2586,
+    3458,
+    1196,
+    1794
+  ],
+  "harmonic_horizontal_negative": [
+    1743,
+    2615,
+    617,
+    1215
+  ],
+  "harmonic_horizontal_positive": [
+    1743,
+    2615,
+    1775,
+    2373
+  ],
+  "harmonic_diagonal_n1_n1": [
+    900,
+    1772,
+    617,
+    1215
+  ],
+  "harmonic_diagonal_p1_p1": [
+    2586,
+    3458,
+    1775,
+    2373
+  ],
+  "harmonic_diagonal_n1_p1": [
+    2586,
+    3458,
+    617,
+    1215
+  ],
+  "harmonic_diagonal_p1_n1": [
+    900,
+    1772,
+    1775,
+    2373
+  ]
+}

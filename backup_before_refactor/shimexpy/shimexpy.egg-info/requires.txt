@@ -1,0 +1,13 @@
+numpy
+xarray
+dask
+cupy-cuda12x
+matplotlib
+scikit-image
+tifffile
+scipy
+cvxpy
+
+[dev]
+pytest
+setuptools
