@@ -34,8 +34,7 @@ dependencies = [
     "scikit-image",
     "tifffile",
     "scipy",
-    "pyside6",
-    "pyqt"
+    "pyside6"
 ]
 
 [project.optional-dependencies]
