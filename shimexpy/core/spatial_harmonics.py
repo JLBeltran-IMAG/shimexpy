@@ -55,7 +55,7 @@ def shi_fft_gpu(
     img_gpu = cp.asarray(image, dtype=cp.float32, order="C")
 
     # 2) Compute the 2D FFT and shift the zero frequency component to the center
-    fft_gpu = cufft.fft2(img_gpu)
+    fft_gpu = cufft.fft2(img_gpu, norm="ortho")
     fft_gpu = cufft.fftshift(fft_gpu)
 
     # 3) Log-spectrum
@@ -125,7 +125,7 @@ def shi_fft_cpu(
     img_height, img_width = image.shape
 
     # Calculate Fourier transform
-    img_fft = np.fft.fftshift(np.fft.fft2(image.astype(np.float32)))
+    img_fft = np.fft.fftshift(np.fft.fft2(image.astype(np.float32), norm="ortho"))
 
     # If logspect is True, we compute the logarithmic spectrum
     if logspect:
@@ -345,7 +345,7 @@ def spatial_harmonics_of_fourier_spectrum(
     fourier_transform: np.ndarray,
     ky: np.ndarray | None,
     kx: np.ndarray | None,
-    reference: bool = True,
+    reference: bool = False,
     reference_block_grid: dict | None = None,
     limit_band: float = 0.5
 ) -> tuple[xr.DataArray, dict[str, list[np.integer]]]:
@@ -405,10 +405,10 @@ def spatial_harmonics_of_fourier_spectrum(
     ... )
     >>> da.sel(harmonic="harmonic_horizontal_positive").plot()
     """
-    # Create a copy of the Fourier transform to avoid modifying the original.
-    copy_of_fourier_transform = np.copy(fourier_transform)
-
     if reference and ky is not None and kx is not None:
+        # Create a copy of the Fourier transform to avoid modifying the original.
+        copy_of_fourier_transform = np.copy(fourier_transform)
+
         # Identify the main maximum harmonic (assumed to be near the center)
         abs_fft = np.abs(fourier_transform)
         max_index = np.argmax(abs_fft)
@@ -442,7 +442,10 @@ def spatial_harmonics_of_fourier_spectrum(
 
             harmonics.append(fourier_transform[top:bottom, left:right])
             label = _identifying_harmonic(main_max_h, main_max_w, harmonic_h, harmonic_w)
+
+            # Save the limits of the extracted harmonic region.
             block_grid[label] = [top, bottom, left, right]
+
             _zero_fft_region(copy_of_fourier_transform, top, bottom, left, right)
 
         # Create a DataArray to hold the harmonics.
