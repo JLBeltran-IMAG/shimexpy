@@ -1,27 +1,28 @@
+
 # ShimExPy Examples
 
-Este directorio contiene ejemplos que muestran cómo utilizar la biblioteca ShimExPy para análisis de imágenes de armonía espacial.
+This directory contains examples that demonstrate how to use the ShimExPy library for spatial harmonic image analysis.
 
-## Ejemplos disponibles
+## Available Examples
 
 ### basic_analysis.py
-Un ejemplo básico que muestra cómo cargar imágenes de referencia y muestra, calcular contrastes y visualizarlos.
+A basic example showing how to load reference and sample images, compute contrasts, and visualize them.
 
 ```bash
 ./basic_analysis.py
 ```
 
 ### batch_processing.py
-Ejemplo de procesamiento por lotes que muestra cómo procesar múltiples imágenes en paralelo.
+A batch processing example demonstrating how to process multiple images in parallel.
 
 ```bash
 ./batch_processing.py
 ```
 
-## Configuración
+## Configuration
 
-Cada script puede ser adaptado modificando las variables al principio del archivo o los argumentos de las funciones para adecuarse a tus datos y necesidades específicas.
+Each script can be adapted by modifying the variables at the beginning of the file or the function arguments to suit your specific data and needs.
 
-## Requisitos
+## Requirements
 
-Estos ejemplos requieren que ShimExPy esté instalado, además de tener acceso a las imágenes de prueba referenciadas en los scripts.
+These examples require ShimExPy to be installed, as well as access to the test images referenced in the scripts.

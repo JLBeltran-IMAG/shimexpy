@@ -1,7 +1,6 @@
-# from pathlib import Path
 from tifffile import imread
 from cupyx.profiler import benchmark
-# import matplotlib.pyplot as plt
+
 
 from shimexpy import (
     get_harmonics,
@@ -15,17 +14,9 @@ from shimexpy import (
 reference_img=imread("tests/test_reference.tif")
 sample_img = imread("tests/test_sample.tif")
 
+
 # Set reference image
 ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(reference_img, projected_grid=5)
-
-
-# print(
-#     benchmark(
-#         get_all_contrasts,
-#         (sample_img, reference_img, 5),
-#         n_repeat=5
-#     )
-# )
 
 
 print(
