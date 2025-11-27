@@ -51,3 +51,5 @@ docs/_build/
 # Local development files
 *.sqlite3
 *.db
+CLAUDE.md
+.claude

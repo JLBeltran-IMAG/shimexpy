@@ -1,0 +1,12 @@
+[run]
+omit =
+    # GUI-dependent module (requires PySide6)
+    shimexpy/shimexpy/utils/crop.py
+    # Placeholder module (not implemented)
+    shimexpy/shimexpy/utils/ffc.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
