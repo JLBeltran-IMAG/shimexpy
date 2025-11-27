@@ -20,9 +20,37 @@ from .logic.sync_controller import SyncController
 from .data.annotation_data import save_annotations_to_json, load_annotations_from_json
 from .utils.image_loader import ImageLoader, ImageLoadError
 
-from src.shi_core.cleaner import Cleaner
-from src.shi_core.exceptions import SHIError
-from src.shi_core.logging import logger
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
+class SHIError(Exception):
+    """Base exception for SHI errors."""
+    pass
+
+
+class Cleaner:
+    """Simple file cleaner for temporary and generated files."""
+
+    def clean_extra(self, directory: Path) -> None:
+        """Clean temporary files from a directory."""
+        patterns = ["*.tmp", "*.pyc", "__pycache__"]
+        for pattern in patterns:
+            for f in directory.rglob(pattern):
+                try:
+                    if f.is_file():
+                        f.unlink()
+                    elif f.is_dir():
+                        import shutil
+                        shutil.rmtree(f)
+                except Exception as e:
+                    logger.warning(f"Could not remove {f}: {e}")
+
+    def _remove_directory(self, directory: Path) -> None:
+        """Remove a directory and its contents."""
+        import shutil
+        if directory.exists():
+            shutil.rmtree(directory)
 
 
 import os

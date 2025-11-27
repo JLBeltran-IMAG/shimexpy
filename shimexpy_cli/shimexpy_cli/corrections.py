@@ -3,7 +3,14 @@ from skimage.transform import rotate
 from tifffile import imread, imwrite
 from pathlib import Path
 import logging
-from . import angles_correction
+
+# Import core preprocessing functions from shimexpy
+from shimexpy.preprocessing import (
+    correct_darkfield as core_correct_darkfield,
+    correct_brightfield as core_correct_brightfield,
+    extract_peak_coordinates,
+    calculate_rotation_angle,
+)
 
 
 def crop_without_corrections(
@@ -14,10 +21,10 @@ def crop_without_corrections(
 ) -> None:
     # Convert string to Path if needed
     path_to_images = Path(path_to_images)
-    
+
     # Find all .tif files in the directory
     images = list(path_to_images.glob("*.tif"))
-    
+
     # Create the output directory
     path_to_cropped_images = path_to_images / "crop_without_correction"
 
@@ -32,8 +39,9 @@ def crop_without_corrections(
     for imgs in images:
         corrected_images = imread(imgs)
 
-        cords = angles_correction.extracting_coordinates_of_peaks(corrected_images)
-        deg = angles_correction.calculating_angles_of_peaks_average(cords)
+        # Use core preprocessing functions for angle detection
+        coords = extract_peak_coordinates(corrected_images)
+        deg = calculate_rotation_angle(coords)
 
         imwrite(
             path_to_cropped_images.joinpath("{}".format(imgs.name)),
@@ -69,10 +77,10 @@ def correct_darkfield(
     # Convert string to Path if needed
     path_to_images = Path(path_to_images)
     path_to_dark = Path(path_to_dark)
-    
+
     # Find all .tif files in the directory
     images = list(path_to_images.glob("*.tif"))
-    
+
     # Create the output directory
     path_to_corrected_images = path_to_images / "corrected_images"
 
@@ -92,7 +100,9 @@ def correct_darkfield(
 
     dark_image_average = np.mean(dark, axis=0)
     for imgs in images:
-        corrected_images = imread(imgs) - dark_image_average
+        image = imread(imgs)
+        # Use core preprocessing function for dark field correction
+        corrected_images = core_correct_darkfield(image, dark_image_average)
         imwrite(
             path_to_corrected_images.joinpath("{}".format(imgs.name)),
             rotate(corrected_images, angle)[y0:y1, x0:x1].astype(np.float32),
@@ -161,9 +171,8 @@ def correct_brightfield(path_to_bright, path_to_images):
 
     for imgs in images:
         img_array = imread(imgs).astype(np.float32)
-        result_div = np.copy(img_array).astype(np.float32)
-
-        corrected_images = np.divide(img_array, bright_image_average, out=result_div, where=bright_image_average != 0)
+        # Use core preprocessing function for bright field correction
+        corrected_images = core_correct_brightfield(img_array, bright_image_average)
 
         imwrite(
             path_to_corrected_images.joinpath("{}".format(imgs.name)),
