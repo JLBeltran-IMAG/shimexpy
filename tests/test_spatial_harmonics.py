@@ -1,26 +1,32 @@
-import numpy as np#
+import numpy as np
 import xarray as xr
 import pytest
 import sys
 import os
 from tifffile import imread
 
+# Clear any existing shimexpy imports and add correct path
+_mods_to_remove = [k for k in list(sys.modules.keys()) if 'shimexpy' in k]
+for _m in _mods_to_remove:
+    del sys.modules[_m]
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "shimexpy")))
 
-from spatial_harmonics import (
-    shi_fft_linear_and_log,
+from shimexpy.core.spatial_harmonics import (
+    shi_fft_cpu as shi_fft_linear_and_log,  # Renamed function
     FFTResult,
     _zero_fft_region,
     _extracting_harmonic,
     _identifying_harmonics_x1y1_higher_orders,
     _identifying_harmonic,
     spatial_harmonics_of_fourier_spectrum,
-    _unwrapping_phase_gradient_operator,
-    _compute_phase_map,
-    _compute_scattering,
-    _differential_phase_contrast,
-    contrast_retrieval_individual_members
 )
+# Note: The following functions were moved or removed:
+# - _unwrapping_phase_gradient_operator -> shimexpy.core.unwrapping
+# - _compute_phase_map -> shimexpy.core.contrast
+# - _compute_scattering -> shimexpy.core.contrast
+# - _differential_phase_contrast -> removed/internal
+# - contrast_retrieval_individual_members -> shimexpy.core.contrast
 
 
 def test_shi_fft_linear_and_log_basic():
@@ -223,27 +229,27 @@ def test_extracting_harmonic_basic(real_fft_data):
 def reference_harmonics(real_fft_data):
     """
     Ejecuta spatial_harmonics en modo referencia y devuelve:
-      da_ref, labels_ref, grid_ref, fft, ky, kx
+      da_ref, grid_ref, fft, ky, kx
+    Note: Function now returns 2 values (da, block_grid) not 3
     """
     kx, ky, fourier_transform = real_fft_data
-    da_ref, labels_ref, block_grid_ref = spatial_harmonics_of_fourier_spectrum(
+    da_ref, block_grid_ref = spatial_harmonics_of_fourier_spectrum(
         fourier_transform=fourier_transform,
         ky=ky,
         kx=kx,
         reference=True,
         limit_band=0.5
     )
-    return da_ref, labels_ref, block_grid_ref, kx, ky, fourier_transform
+    return da_ref, block_grid_ref, kx, ky, fourier_transform
 
 
 def test_spatial_harmonics_reference_mode(reference_harmonics):
     """Test spatial harmonics extraction in reference mode"""
     # Create wavevector arrays
-    da, labels, block_grid, _, _, _ = reference_harmonics
+    da, block_grid, _, _, _ = reference_harmonics
 
     # Test return types
     assert isinstance(da, xr.DataArray)
-    assert isinstance(labels, list)
     assert isinstance(block_grid, dict)
 
     # Test DataArray properties
@@ -251,7 +257,7 @@ def test_spatial_harmonics_reference_mode(reference_harmonics):
     assert "ky" in da.dims
     assert "kx" in da.dims
 
-    # Expected labels and block grid keys
+    # Expected block grid keys (labels are now derived from block_grid keys)
     expected = {
         "harmonic_00",
         "harmonic_horizontal_positive",
@@ -264,8 +270,7 @@ def test_spatial_harmonics_reference_mode(reference_harmonics):
         "harmonic_diagonal_n1_n1"
     }
 
-    assert set(labels) == expected
-    assert set(block_grid) == expected
+    assert set(block_grid.keys()) == expected
 
     for limits in block_grid.values():
         assert len(limits) == 4  # [top, bottom, left, right]
@@ -273,10 +278,10 @@ def test_spatial_harmonics_reference_mode(reference_harmonics):
 
 
 def test_spatial_harmonics_non_reference_mode(reference_harmonics):
-    """Test en modo reference=False, reutilizando labels y grid del fixture anterior"""
-    da_ref, labels_ref, block_grid_ref, kx, ky, fourier_transform = reference_harmonics
+    """Test en modo reference=False, reutilizando grid del fixture anterior"""
+    da_ref, block_grid_ref, kx, ky, fourier_transform = reference_harmonics
 
-    da_nonref, labels_nonref, block_grid_nonref = spatial_harmonics_of_fourier_spectrum(
+    da_nonref, block_grid_nonref = spatial_harmonics_of_fourier_spectrum(
         fourier_transform=fourier_transform,
         ky=ky,
         kx=kx,
@@ -284,8 +289,7 @@ def test_spatial_harmonics_non_reference_mode(reference_harmonics):
         reference_block_grid=block_grid_ref
     )
 
-    # They should have the same labels and block_grid
-    assert labels_nonref == labels_ref
+    # They should have the same block_grid
     assert block_grid_nonref == block_grid_ref
 
     # Their DataArrays must be the same
