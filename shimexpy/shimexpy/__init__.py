@@ -37,10 +37,9 @@ from shimexpy.io.file_io import (
     cli_export
 )
 
-from shimexpy.utils.ffc import ffc
-from shimexpy.utils.crop import set_crop
 from shimexpy.utils.parallelization import apply_harmonic_chunking
 
+# Note: ffc and set_crop removed - ffc is placeholder, set_crop requires PySide6
 
 __all__ = [
     # Spatial Harmonics
@@ -69,8 +68,6 @@ __all__ = [
     "cli_export",
 
     # Utilities
-    "ffc",
-    "set_crop",
     "apply_harmonic_chunking"
 ]
 

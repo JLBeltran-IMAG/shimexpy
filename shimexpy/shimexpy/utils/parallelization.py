@@ -1,5 +1,11 @@
 import xarray as xr
-import cupy as cp
+
+try:
+    import cupy as cp
+    _HAS_CUPY = True
+except ImportError:
+    cp = None
+    _HAS_CUPY = False
 
 
 def apply_harmonic_chunking(
@@ -44,7 +50,7 @@ def move_to_cpu(xobj: xr.DataArray):
     """
 
     if isinstance(xobj, xr.DataArray):
-        if isinstance(xobj.data, cp.ndarray):
+        if _HAS_CUPY and isinstance(xobj.data, cp.ndarray):
             xobj.data = cp.asnumpy(xobj.data)
         return xobj
 

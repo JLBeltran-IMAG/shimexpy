@@ -3,11 +3,17 @@ I/O utilities for loading and saving images and results.
 """
 import numpy as np
 import xarray as xr
-import cupy as cp
 from pathlib import Path
 import tifffile
 import json
 import pickle
+
+try:
+    import cupy as cp
+    _HAS_CUPY = True
+except ImportError:
+    cp = None
+    _HAS_CUPY = False
 
 from shimexpy.utils.parallelization import move_to_cpu
 
