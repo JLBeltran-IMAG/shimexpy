@@ -47,7 +47,7 @@ HARMONICS = [
 
 # -------------------- contrast retrieval
 def _compute_phase_map(
-    iftt_harmonics: xr.DataArray,
+    ifft_harmonics: xr.DataArray,
     main_harmonic: xr.DataArray,
     unwrap: str | None = None,
     eps: float = 1e-12
@@ -57,7 +57,7 @@ def _compute_phase_map(
 
     Parameters:
     -----------
-    iftt_harmonics : np.ndarray
+    ifft_harmonics : np.ndarray
         Array containing the inverse Fourier transform of the data.
     main_harmonic : np.ndarray
         Array containing the main harmonic in the Fourier domain.
@@ -72,22 +72,12 @@ def _compute_phase_map(
         The unwrapped phase map.
     """
     # Compute the ratio, avoiding division by zero by adding a small eps
-    ratio = iftt_harmonics / (main_harmonic + eps)
+    ratio = ifft_harmonics / (main_harmonic + eps)
 
     # Unwrap the phase using the skimage algorithm
     if unwrap is None:
         unwrapped_phase_map = xr.apply_ufunc(
             uphase.skimage_unwrap,
-            ratio,
-            input_core_dims = [["y", "x"]],
-            output_core_dims = [["y", "x"]],
-            dask="parallelized",
-            output_dtypes=[ratio.dtype]
-        )
-
-    elif unwrap == "branch_cut":
-        unwrapped_phase_map = xr.apply_ufunc(
-            uphase.branch_cut_unwrap,
             ratio,
             input_core_dims = [["y", "x"]],
             output_core_dims = [["y", "x"]],
@@ -105,39 +95,19 @@ def _compute_phase_map(
             output_dtypes=[ratio.dtype]
         )
 
-    elif unwrap == "quality_guided":
-        unwrapped_phase_map = xr.apply_ufunc(
-            uphase.quality_guided_unwrap,
-            ratio,
-            input_core_dims = [["y", "x"]],
-            output_core_dims = [["y", "x"]],
-            dask="parallelized",
-            output_dtypes = [ratio.dtype],
-        )
-
-    elif unwrap == "numpy":
-        unwrapped_phase_map = xr.apply_ufunc(
-            uphase.sequential_np_unwrap,
-            ratio,
-            input_core_dims = [["y", "x"]],
-            output_core_dims = [["y", "x"]],
-            dask = "parallelized",
-            output_dtypes = [ratio.dtype],
-        )
-
     else:
         raise ValueError("Unknown phase unwrapping algorithm")
 
     return unwrapped_phase_map
 
 
-def _compute_scattering(iftt_harmonics, main_harmonic, eps=1e-12):
+def _compute_scattering(ifft_harmonics, main_harmonic, eps=1e-12):
     """
     Computes the scattering value from the inverse Fourier transform and the main harmonic.
 
     Parameters:
     -----------
-    iftt_harmonics : np.ndarray
+    ifft_harmonics : np.ndarray
         Array containing the inverse Fourier transform of the data.
     main_harmonic : np.ndarray
         Array containing the main harmonic in the Fourier domain.
@@ -150,7 +120,7 @@ def _compute_scattering(iftt_harmonics, main_harmonic, eps=1e-12):
         The computed scattering value.
     """
     # Compute the ratio and avoid division by zero by adding eps
-    ratio = iftt_harmonics / (main_harmonic + eps)
+    ratio = ifft_harmonics / (main_harmonic + eps)
 
     # Get the absolute value of the ratio
     abs_ratio = np.abs(ratio)

@@ -24,9 +24,7 @@ from shimexpy.core.contrast import (
 
 from shimexpy.core.unwrapping import (
     skimage_unwrap,
-    branch_cut_unwrap,
-    ls_unwrap,
-    quality_guided_unwrap
+    ls_unwrap
 )
 
 from shimexpy.io.file_io import (
@@ -59,9 +57,7 @@ __all__ = [
 
     # Unwrapping Phase
     "skimage_unwrap",
-    "branch_cut_unwrap",
     "ls_unwrap",
-    "quality_guided_unwrap",
 
     # File I/O
     "load_image",

@@ -3,278 +3,173 @@ Phase unwrapping algorithms.
 """
 
 import numpy as np
-import heapq
 from numpy.fft import fft2, ifft2, fftfreq
 from skimage.restoration import unwrap_phase
 
 
 # -------------------------------------------------
-# 0. Skimage unwrapping phase algorithm
+# 0. Skimage unwrapping phase algorithm (Best)
 # -------------------------------------------------
 def skimage_unwrap(
     block: np.ndarray,
     wrap_around: bool = True
 ) -> np.ndarray:
     """
-    Unwraps phase using skimage's unwrap_phase function.
+    Unwrap a wrapped phase map using scikit-image's unwrap_phase and return a (1, M, N) array.
+
+    This function accepts either a 2D wrapped phase array of shape (M, N) or a 3D array
+    with a leading singleton channel (1, M, N). If a 3D array is provided, the first
+    slice (index 0) is used as the wrapped phase. The wrapped phase may be a complex
+    ratio (complex-valued array) or a real-valued array; the function converts it to
+    an angular wrapped-phase via numpy.angle before unwrapping.
 
     Parameters
     ----------
-    block : np.ndarray
-        Input complex-valued array whose phase will be unwrapped
+    block : numpy.ndarray
+        Input wrapped phase. Expected shapes:
+          - (M, N) : 2D wrapped phase matrix.
+          - (1, M, N) : 3D array where the first slice contains the wrapped phase.
+        Elements may be complex (e.g., a complex ratio) or real; the phase angle
+        (in radians) is computed internally.
     wrap_around : bool, optional
-        Whether to assume the phase wraps around. Default is True.
+        Passed through to skimage.restoration.unwrap_phase to control wrap-around
+        handling at the array boundaries. Default is True.
 
     Returns
     -------
-    np.ndarray
-        Unwrapped phase array
+    numpy.ndarray
+        Unwrapped phase map with shape (1, M, N) and dtype float. The unwrapped
+        values are in radians.
+
+    Raises
+    ------
+    ValueError
+        If `block` does not have 2 or 3 dimensions (i.e., is not (M, N) or (1, M, N)).
+
+    Notes
+    -----
+    - The function uses numpy.angle to extract the wrapped phase from possibly complex
+      inputs, then calls skimage.restoration.unwrap_phase on the full 2D phase map.
+    - The returned array always has a leading singleton dimension to preserve a
+      consistent (1, M, N) output shape.
+
+    Examples
+    --------
+    # For a 2D wrapped phase:
+    >>> wrapped = np.exp(1j * np.linspace(-np.pi, np.pi, 100).reshape(10,10))
+    >>> result = skimage_unwrap(wrapped)
+    >>> result.shape
+    (1, 10, 10)
+
+    # For an input already shaped (1, M, N):
+    >>> wrapped3 = np.expand_dims(np.angle(wrapped), 0)
+    >>> result = skimage_unwrap(wrapped3, wrap_around=False)
     """
-    angle = np.angle(block)
+    # Normalize shape
+    if block.ndim == 3:
+        wrapped_phase = block[0]   # shape → (M, N)
+    elif block.ndim == 2:
+        wrapped_phase = block
+    else:
+        raise ValueError("Input block must be 2D or 3D with shape (1, M, N) or (M, N).")
 
-    unwrap_phase_result = unwrap_phase(angle[0], wrap_around=wrap_around)
-    unwrap_phase_result = unwrap_phase_result[np.newaxis, ...]
+    # Convert complex ratio → wrapped phase
+    angle = np.angle(wrapped_phase)
 
-    return unwrap_phase_result
+    # Apply skimage unwrap *on the full 2D matrix*
+    unwrap_phase_result = unwrap_phase(angle, wrap_around=wrap_around)
+
+    # Return with shape (1, M, N)
+    return unwrap_phase_result[np.newaxis, ...]
 
 
-# -------------------------------------------------
-# 1. Branch-Cut Unwrapping (Goldstein's method)
-# -------------------------------------------------
-def branch_cut_unwrap(
-    block: np.ndarray,
-    residue_threshold: float = 0.5
-) -> np.ndarray:
-    """
-    Simplified Goldstein Branch-Cut Phase Unwrapping.
+def ls_unwrap(block: np.ndarray) -> np.ndarray:
+    """Least-squares (LS) phase unwrapping using a Poisson solver in the Fourier domain.
 
-    This implementation:
-      - Computes a residue map from the wrapped phase via 2x2 loops.
-      - Marks pixels with |residue| > residue_threshold as branch cuts.
-      - Uses a stack-based flood-fill to propagate unwrapping while avoiding cuts.
+    This function computes an unwrapped phase estimate from a wrapped phase or
+    complex-valued field using the least-squares formulation. It is a drop-in,
+    optimized replacement for an ls_unwrap_poisson implementation.
 
     Parameters
     ----------
-    wrapped_phase : np.ndarray
-        2D array of wrapped phase values in radians.
-    residue_threshold : float, optional
-        Threshold (in cycles) for marking branch cuts; defaults to 0.5.
+    block : numpy.ndarray
+        Input array containing either:
+          - a 2-D array of samples (M, N), interpreted as complex-valued data
+            (the phase is taken with numpy.angle) or as already-wrapped phase
+            values in radians, or
+          - a 3-D array (C, M, N), in which case only the first slice along
+            axis 0 (block[0]) is used.
+        The function expects finite values (no NaNs or infinities). For complex
+        inputs the wrapped phase is computed as angle(block).
 
     Returns
     -------
-    unwrapped : np.ndarray
-        2D array of the unwrapped phase.
+    numpy.ndarray
+        A 3-D array with shape (1, M, N) containing the unwrapped phase in
+        radians. The returned phase has zero mean (the global constant offset
+        is removed as part of the Fourier-domain Poisson solution).
+
+    Notes
+    -----
+    - Method: computes forward wrapped differences, forms their divergence,
+      and solves the Poisson equation in the Fourier domain. Wrapped differences
+      are computed robustly via angle(exp(1j * delta_phi)) to handle 2*pi jumps.
+    - Boundary handling: the implementation assembles a discrete divergence
+      consistent with forward differences and enforces a zero-mean solution by
+      setting the DC component of the Fourier-domain solution to zero.
+    - Complexity: O(M * N * log(M * N)) dominated by the 2-D FFTs.
+    - Input requirements: M and N should be >= 2 for sensible differencing;
+      inputs must be finite. The algorithm assumes a dense regular grid and
+      non-masked data (no explicit handling of invalid/masked pixels).
+
+    References
+    ----------
+    - Ghiglia, D. C., & Pritt, M. D. (1998). Two-Dimensional Phase Unwrapping:
+      Theory, Algorithms, and Software. (for background on LS unwrapping and
+      Poisson-based formulations).
     """
-    if block.ndim == 3:
-        wrapped_phase = block[0]
-    elif block.ndim == 2:
-        wrapped_phase = block
-    else:
-        raise ValueError("Input block must be 2D or 3D with shape (1, M, N) or (M, N).")
+    # Normalize dimensions
+    z = block[0] if block.ndim == 3 else block
+    phiw = np.angle(z)
+    M, N = phiw.shape
 
-    rows, cols = wrapped_phase.shape
+    # Compute wrapped differences (dx, dy) — vectorized and minimal temporaries
+    dx = np.zeros_like(phiw)
+    dy = np.zeros_like(phiw)
 
-    # 1) Compute the residue map
-    # Phase differences around each 2×2 cell
-    d1 = np.angle(np.exp(1j * (np.roll(wrapped_phase, -1, axis=1) - wrapped_phase)))
-    d2 = np.angle(np.exp(1j * (np.roll(wrapped_phase, (-1, -1), axis=(0,1)) - np.roll(wrapped_phase, -1, axis=1))))
-    d3 = np.angle(np.exp(1j * (np.roll(wrapped_phase, -1, axis=0) - np.roll(wrapped_phase, (-1, -1), axis=(0,1)))))
-    d4 = np.angle(np.exp(1j * (wrapped_phase - np.roll(wrapped_phase, -1, axis=0))))
+    # forward differences
+    diff_x = phiw[:, 1:] - phiw[:, :-1]
+    diff_y = phiw[1:, :] - phiw[:-1, :]
 
-    # Residue in cycles
-    residues = (d1 + d2 + d3 + d4) / (2 * np.pi)
+    # wrapped differences (vectorized)
+    dx[:, :-1] = np.angle(np.exp(1j * diff_x))
+    dy[:-1, :] = np.angle(np.exp(1j * diff_y))
 
-    # 2) Branch cuts mask
-    branch_cut = np.abs(residues) > residue_threshold
-
-    # 3) Prepare unwrapped array and visited mask
-    unwrapped = wrapped_phase.copy()
-    visited = np.zeros_like(wrapped_phase, dtype=bool)
-
-    # 4) Find a valid start point (not on a branch cut)
-    starts = np.argwhere(~branch_cut)
-    if starts.size == 0:
-        raise RuntimeError("All pixels are branch cuts; cannot start unwrapping.")
-    start_i, start_j = starts[0]
-    visited[start_i, start_j] = True
-
-    # 5) Flood-fill stack
-    stack = [(start_i, start_j)]
-    neighbor_offsets = [(-1,0), (1,0), (0,-1), (0,1)]
-
-    while stack:
-        i, j = stack.pop()
-        base_val = unwrapped[i, j]
-        for di, dj in neighbor_offsets:
-            ni, nj = i + di, j + dj
-            if (
-                0 <= ni < rows and 0 <= nj < cols
-                and not visited[ni, nj]
-                and not branch_cut[ni, nj]
-            ):
-                # wrap difference into [-π, π]
-                diff = wrapped_phase[ni, nj] - wrapped_phase[i, j]
-                diff = np.angle(np.exp(1j * diff))
-                unwrapped[ni, nj] = base_val + diff
-                visited[ni, nj] = True
-                stack.append((ni, nj))
-
-    unwrap_phase_result = unwrapped[np.newaxis, ...]
-
-    return unwrap_phase_result
-
-
-# -----------------------------------------------
-# 2. Least-Squares Phase Unwrapping using FFT
-# -----------------------------------------------
-def ls_unwrap(block: np.ndarray) -> np.ndarray:
-    """
-    Least-Squares Phase Unwrapping using an FFT-based Poisson solver.
-    
-    The method computes finite differences in x and y, forms a divergence,
-    and then solves the Poisson equation in the Fourier domain.
-    
-    Parameters:
-        wrapped_phase (np.ndarray): 2D array of wrapped phase (radians).
-    
-    Returns:
-        np.ndarray: Unwrapped phase.
-    """
-    if block.ndim == 3:
-        wrapped_phase = block[0]
-    elif block.ndim == 2:
-        wrapped_phase = block
-    else:
-        raise ValueError("Input block must be 2D or 3D with shape (1, M, N) or (M, N).")
-
-    M, N = wrapped_phase.shape
-
-    # Compute wrapped finite differences along x and y directions.
-    dx = np.zeros_like(wrapped_phase)
-    dy = np.zeros_like(wrapped_phase)
-    dx[:, :-1] = np.angle(np.exp(1j * (wrapped_phase[:, 1:] - wrapped_phase[:, :-1])))
-    dy[:-1, :] = np.angle(np.exp(1j * (wrapped_phase[1:, :] - wrapped_phase[:-1, :])))
-
-    # Compute divergence of the gradient differences.
-    div = np.zeros_like(wrapped_phase)
-
-    # For x-direction:
+    # Divergence (fully vectorized)
+    div = np.zeros_like(phiw)
     div[:, 0] = dx[:, 0]
     div[:, 1:-1] = dx[:, 1:-1] - dx[:, :-2]
     div[:, -1] = -dx[:, -2]
 
-    # For y-direction:
     div[0, :] += dy[0, :]
     div[1:-1, :] += dy[1:-1, :] - dy[:-2, :]
     div[-1, :] += -dy[-2, :]
 
-    # Solve the Poisson equation using FFT.
-    k1 = fftfreq(M).reshape(-1, 1)
-    k2 = fftfreq(N).reshape(1, -1)
+    # Poisson solver in Fourier domain
+    ky = fftfreq(M)[:, None]
+    kx = fftfreq(N)[None, :]
 
-    # Discrete Laplacian eigenvalues (using cosine formulation)
-    laplacian = (2 * np.cos(2 * np.pi * k1) - 2) + (2 * np.cos(2 * np.pi * k2) - 2)
-    laplacian[0, 0] = 1  # Avoid division by zero for the DC term
+    denom = (2 * np.pi)**2 * (kx**2 + ky**2)
+    denom[0, 0] = 1.0
+
     div_fft = fft2(div)
-    unwrapped_fft = div_fft / laplacian
-    unwrapped = np.real(ifft2(unwrapped_fft))
+    phi_fft = div_fft / denom
+    phi_fft[0, 0] = 0.0
 
-    # Remove arbitrary constant offset
-    unwrapped -= unwrapped[0, 0]
-
-    unwrap_phase_result = unwrapped[np.newaxis, ...]
-
-    return unwrap_phase_result
+    phi = np.real(ifft2(phi_fft))
+    return phi[np.newaxis, ...]
 
 
-# -----------------------------------------------
-# 3. Quality-Guided Phase Unwrapping
-# -----------------------------------------------
-def quality_guided_unwrap(block: np.ndarray) -> np.ndarray:
-    """
-    Quality-Guided Phase Unwrapping.
-    
-    A simple implementation that computes a quality map based on the local gradient
-    (the lower the gradient, the higher the quality), then unwraps the phase starting
-    from the pixel with the highest quality, propagating to neighbors in a greedy fashion.
-    
-    Parameters:
-        wrapped_phase (np.ndarray): 2D array of wrapped phase (radians).
-    
-    Returns:
-        np.ndarray: Unwrapped phase.
-    """
-    if block.ndim == 3:
-        wrapped_phase = block[0]
-    elif block.ndim == 2:
-        wrapped_phase = block
-    else:
-        raise ValueError("Input block must be 2D or 3D with shape (1, M, N) or (M, N).")
-
-    rows, cols = wrapped_phase.shape
-
-    # Compute a simple quality map: higher quality for lower gradient magnitude.
-    grad_x = np.gradient(wrapped_phase, axis=1)
-    grad_y = np.gradient(wrapped_phase, axis=0)
-    quality = 1.0 / (np.abs(grad_x) + np.abs(grad_y) + 1e-6)
-    
-    unwrapped = np.full_like(wrapped_phase, np.nan)
-
-    # Priority queue: use negative quality to simulate a max-heap.
-    heap = []
-    start_idx = np.unravel_index(np.argmax(quality), wrapped_phase.shape)
-    unwrapped[start_idx] = wrapped_phase[start_idx]
-    visited = np.zeros_like(wrapped_phase, dtype=bool)
-    visited[start_idx] = True
-    heapq.heappush(heap, (-quality[start_idx], start_idx))
-    
-    while heap:
-        neg_q, (i, j) = heapq.heappop(heap)
-        for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            ni, nj = i + di, j + dj
-            if ni < 0 or ni >= rows or nj < 0 or nj >= cols:
-                continue
-            if visited[ni, nj]:
-                continue
-            diff = wrapped_phase[ni, nj] - wrapped_phase[i, j]
-            diff = np.angle(np.exp(1j * diff))
-            unwrapped[ni, nj] = unwrapped[i, j] + diff
-            visited[ni, nj] = True
-            heapq.heappush(heap, (-quality[ni, nj], (ni, nj)))
-
-    unwrap_phase_result = unwrapped[np.newaxis, ...]
-
-    return unwrap_phase_result
-
-
-# -----------------------------------------------
-# 4. Sequential Phase Unwrapping
-# -----------------------------------------------
-def sequential_np_unwrap(block: np.ndarray) -> np.ndarray:
-    """
-    Unwraps a 2D phase map sequentially using numpy's unwrap function.
-    This method unwraps the phase map first along the rows and then along the columns.
-
-    Parameters
-    ----------
-    block : np.ndarray
-        A 2D numpy array containing the wrapped phase map.
-
-    Returns
-    -------
-    np.ndarray
-        A 2D numpy array containing the unwrapped phase map.
-    """
-    if block.ndim == 3:
-        wrapped_phase = block[0]
-    elif block.ndim == 2:
-        wrapped_phase = block
-    else:
-        raise ValueError("Input block must be 2D or 3D with shape (1, M, N) or (M, N).")
-
-    unwrapped = np.unwrap(wrapped_phase, axis=0)
-    unwrapped = np.unwrap(unwrapped, axis=1)
-
-    unwrap_phase_result = unwrapped[np.newaxis, ...]
-
-    return unwrap_phase_result
+# # -------------------------------------------------
+# # New implementations
+# # -------------------------------------------------
