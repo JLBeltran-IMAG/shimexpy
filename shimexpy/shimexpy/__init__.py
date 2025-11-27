@@ -39,7 +39,13 @@ from shimexpy.io.file_io import (
 
 from shimexpy.utils.parallelization import apply_harmonic_chunking
 
-# Note: ffc and set_crop removed - ffc is placeholder, set_crop requires PySide6
+from shimexpy.preprocessing import (
+    correct_darkfield,
+    correct_brightfield,
+    flat_field_correction,
+    extract_peak_coordinates,
+    calculate_rotation_angle,
+)
 
 __all__ = [
     # Spatial Harmonics
@@ -57,6 +63,13 @@ __all__ = [
     # Unwrapping Phase
     "skimage_unwrap",
     "ls_unwrap",
+
+    # Preprocessing
+    "correct_darkfield",
+    "correct_brightfield",
+    "flat_field_correction",
+    "extract_peak_coordinates",
+    "calculate_rotation_angle",
 
     # File I/O
     "load_image",
