@@ -8,38 +8,38 @@ from pathlib import Path
 from shimexpy import get_harmonics
 from shimexpy import load_image
 
-from shimexpy_cli.config import config
-from shimexpy_cli.exceptions import ImageNotFoundError, ProcessingError
-from shimexpy_cli.logging import logger
-import shimexpy_cli.execute as execute
-import shimexpy_cli.directories as directories
-import shimexpy_cli.corrections as corrections
-import shimexpy_cli.crop as crop
-import shimexpy_cli.angles_correction as angles_correction
+from shimexpy.cli.config import config
+from shimexpy.cli.exceptions import ImageNotFoundError, ProcessingError
+from shimexpy.cli.logging import logger
+import shimexpy.cli.execute as execute
+import shimexpy.cli.directories as directories
+import shimexpy.cli.corrections as corrections
+from shimexpy.preprocessing import extract_peak_coordinates, calculate_rotation_angle
 
 
 class SHIProcessor:
     """Main class for handling SHI processing operations."""
-    
+
     def __init__(
         self,
         mask_period: int,
         unwrap_method: Optional[str] = None,
-        allow_crop: bool = False
+        crop: Optional[tuple] = None
     ) -> None:
         """
         Initialize SHI processor.
-        
+
         Args:
             mask_period: Number of projected pixels in the mask
             unwrap_method: Phase unwrapping method to use
+            crop: Optional crop coordinates as (top, bottom, left, right)
         """
         self.mask_period = mask_period
         if unwrap_method and not config.validate_unwrap_method(unwrap_method):
             raise ValueError(f"Invalid unwrap method: {unwrap_method}")
 
         self.unwrap_method = unwrap_method
-        self.allow_crop = allow_crop
+        self.crop = crop if crop else (0, -1, 0, -1)  # Default: no cropping
 
     def mask_period_definition(self):
         """Get the mask period. Por ahora no se usa."""
@@ -87,26 +87,21 @@ class SHIProcessor:
             reference_path
         ) if angle_after else np.float32(0)
 
-        # Important: Only do crop ONCE per directory, not per image
-        # Get crop from first image in the directory
-        # and make sure to use an actual image file
-        first_image = image_files[0]  # Use the first .tif file found
-        logger.info(f"Using image {first_image} for crop reference")
-
-        if self.allow_crop:
-            crop_from_tmptxt = crop.cropImage(first_image)
-        else:
-            crop_from_tmptxt = (0, -1, 0, -1)
+        # Use crop coordinates from initialization
+        crop_coords = self.crop
+        if crop_coords != (0, -1, 0, -1):
+            logger.info(f"Using crop region: top={crop_coords[0]}, bottom={crop_coords[1]}, left={crop_coords[2]}, right={crop_coords[3]}")
 
         # Apply corrections based on the crop settings
+        allow_crop = crop_coords != (0, -1, 0, -1)
         if dark_path:
             self._apply_dark_bright_corrections(
                 dark_path,
                 reference_path,
                 images_path,
                 bright_path,
-                crop_from_tmptxt,
-                self.allow_crop,
+                crop_coords,
+                allow_crop,
                 deg
             )
             foldername_to = "corrected_images"
@@ -114,8 +109,8 @@ class SHIProcessor:
             self._apply_crop_only(
                 images_path,
                 reference_path,
-                crop_from_tmptxt,
-                self.allow_crop,
+                crop_coords,
+                allow_crop,
                 deg
             )
             foldername_to = "crop_without_correction"
@@ -156,8 +151,11 @@ class SHIProcessor:
             reference_path
         ) if angle_after else np.float32(0)
 
-        # Crop image
-        crop_from_tmptxt = crop.cropImage(image_path)
+        # Use crop coordinates from initialization
+        crop_coords = self.crop
+        allow_crop = crop_coords != (0, -1, 0, -1)
+        if allow_crop:
+            logger.info(f"Using crop region: top={crop_coords[0]}, bottom={crop_coords[1]}, left={crop_coords[2]}, right={crop_coords[3]}")
 
         # Apply corrections
         if dark_path:
@@ -166,8 +164,8 @@ class SHIProcessor:
                 reference_path,
                 image_path,
                 bright_path,
-                crop_from_tmptxt,
-                self.allow_crop,
+                crop_coords,
+                allow_crop,
                 deg
             )
             foldername_to = "corrected_images"
@@ -175,8 +173,8 @@ class SHIProcessor:
             self._apply_crop_only(
                 image_path,
                 reference_path,
-                crop_from_tmptxt,
-                self.allow_crop,
+                crop_coords,
+                allow_crop,
                 deg
             )
             foldername_to = "crop_without_correction"
@@ -299,9 +297,9 @@ class SHIProcessor:
 
         path_to_angle_correction = tif_files[0]
         image_angle = io.imread(str(path_to_angle_correction))
-        cords = angles_correction.extracting_coordinates_of_peaks(image_angle)
+        coords = extract_peak_coordinates(image_angle)
 
-        return angles_correction.calculating_angles_of_peaks_average(cords)
+        return np.float32(calculate_rotation_angle(coords))
 
 
     def _apply_dark_bright_corrections(

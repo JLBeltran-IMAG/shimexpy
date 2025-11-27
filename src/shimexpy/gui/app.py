@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 
 try:
-    from shimexpy_gui.mainwindow import MainWindow
+    from shimexpy.gui.mainwindow import MainWindow
 except Exception as e:
     print(f"Error importing MainWindow: {str(e)}")
     traceback.print_exc()

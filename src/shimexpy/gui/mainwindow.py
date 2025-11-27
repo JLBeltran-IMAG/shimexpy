@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 import sys
 
-from shimexpy_gui.image_widget import ImageDisplayWidget, ControlPanelWidget
+from shimexpy.gui.image_widget import ImageDisplayWidget, ControlPanelWidget
 
 from shimexpy import get_harmonics, get_contrast, get_all_contrasts
 from shimexpy import load_image, save_image

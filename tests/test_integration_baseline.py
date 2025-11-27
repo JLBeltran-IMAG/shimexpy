@@ -21,7 +21,7 @@ for _m in _mods_to_remove:
     del sys.modules[_m]
 
 # Add the shimexpy package to path (handles nested structure)
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "shimexpy")))
+
 
 from shimexpy import (
     shi_fft,

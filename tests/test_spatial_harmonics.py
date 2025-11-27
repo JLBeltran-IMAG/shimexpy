@@ -10,7 +10,7 @@ _mods_to_remove = [k for k in list(sys.modules.keys()) if 'shimexpy' in k]
 for _m in _mods_to_remove:
     del sys.modules[_m]
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "shimexpy")))
+
 
 from shimexpy.core.spatial_harmonics import (
     shi_fft_cpu as shi_fft_linear_and_log,  # Renamed function

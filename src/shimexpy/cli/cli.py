@@ -81,12 +81,24 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser_shi.add_argument(
-        "--allow-crop",
-        action="store_true",
-        help="Enable cropping of images."
+        "--crop",
+        type=str,
+        metavar="TOP,BOTTOM,LEFT,RIGHT",
+        help="Crop region coordinates (e.g., --crop 100,500,50,450)"
     )
 
     return main_parser
+
+
+def parse_crop_coordinates(crop_str: str) -> tuple:
+    """Parse crop coordinates from string 'TOP,BOTTOM,LEFT,RIGHT'."""
+    try:
+        parts = [int(x.strip()) for x in crop_str.split(",")]
+        if len(parts) != 4:
+            raise ValueError("Crop requires exactly 4 values")
+        return tuple(parts)  # (top, bottom, left, right)
+    except ValueError as e:
+        raise SHIError(f"Invalid crop format: {crop_str}. Expected TOP,BOTTOM,LEFT,RIGHT (e.g., 100,500,50,450)") from e
 
 
 def run_cli() -> int:
@@ -96,10 +108,13 @@ def run_cli() -> int:
 
     try:
         if args.command == "calculate":
+            # Parse crop coordinates if provided
+            crop_coords = parse_crop_coordinates(args.crop) if args.crop else None
+
             processor = SHIProcessor(
                 mask_period=args.mask_period,
                 unwrap_method=args.unwrap_phase,
-                allow_crop=args.allow_crop
+                crop=crop_coords
             )
 
             if not args.images and not args.reference:
