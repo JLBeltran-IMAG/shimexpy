@@ -240,3 +240,176 @@ class TestCalculateRotationAngle:
         angle = calculate_rotation_angle(coords)
 
         assert angle == 0.0
+
+
+class TestQuadrantSign:
+    """Tests for _quadrant_sign function to improve coverage."""
+
+    def test_quadrant_sign_y_axis_q1(self):
+        """Test _quadrant_sign for axis='y', peak in quadrant 1 (upper right)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col > center_col and peak_row < center_row (upper right)
+        result = _quadrant_sign(
+            peak_row=80, center_row=100,
+            peak_col=120, center_col=100,
+            axis="y"
+        )
+        assert result == 1
+
+    def test_quadrant_sign_y_axis_q2(self):
+        """Test _quadrant_sign for axis='y', peak in quadrant 2 (upper left)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col < center_col and peak_row < center_row (upper left)
+        result = _quadrant_sign(
+            peak_row=80, center_row=100,
+            peak_col=80, center_col=100,
+            axis="y"
+        )
+        assert result == -1
+
+    def test_quadrant_sign_y_axis_q3(self):
+        """Test _quadrant_sign for axis='y', peak in quadrant 3 (lower left)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col < center_col and peak_row > center_row (lower left)
+        result = _quadrant_sign(
+            peak_row=120, center_row=100,
+            peak_col=80, center_col=100,
+            axis="y"
+        )
+        assert result == 1
+
+    def test_quadrant_sign_y_axis_q4(self):
+        """Test _quadrant_sign for axis='y', peak in quadrant 4 (lower right)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col > center_col and peak_row > center_row (lower right)
+        result = _quadrant_sign(
+            peak_row=120, center_row=100,
+            peak_col=120, center_col=100,
+            axis="y"
+        )
+        assert result == -1
+
+    def test_quadrant_sign_x_axis_q4(self):
+        """Test _quadrant_sign for axis='x', peak in quadrant 4 (lower right)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col > center_col and peak_row > center_row (lower right)
+        result = _quadrant_sign(
+            peak_row=120, center_row=100,
+            peak_col=120, center_col=100,
+            axis="x"
+        )
+        assert result == 1
+
+    def test_quadrant_sign_x_axis_q1(self):
+        """Test _quadrant_sign for axis='x', peak in quadrant 1 (upper right)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col > center_col and peak_row < center_row (upper right)
+        result = _quadrant_sign(
+            peak_row=80, center_row=100,
+            peak_col=120, center_col=100,
+            axis="x"
+        )
+        assert result == -1
+
+    def test_quadrant_sign_x_axis_q2(self):
+        """Test _quadrant_sign for axis='x', peak in quadrant 2 (upper left)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col < center_col and peak_row < center_row (upper left)
+        result = _quadrant_sign(
+            peak_row=80, center_row=100,
+            peak_col=80, center_col=100,
+            axis="x"
+        )
+        assert result == 1
+
+    def test_quadrant_sign_x_axis_q3(self):
+        """Test _quadrant_sign for axis='x', peak in quadrant 3 (lower left)."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        # peak_col < center_col and peak_row > center_row (lower left)
+        result = _quadrant_sign(
+            peak_row=120, center_row=100,
+            peak_col=80, center_col=100,
+            axis="x"
+        )
+        assert result == -1
+
+    def test_quadrant_sign_returns_zero_for_invalid(self):
+        """Test _quadrant_sign returns 0 for invalid axis."""
+        from shimexpy.preprocessing.angles import _quadrant_sign
+
+        result = _quadrant_sign(
+            peak_row=100, center_row=100,
+            peak_col=100, center_col=100,
+            axis="invalid"
+        )
+        assert result == 0
+
+
+class TestCalculateRotationAngleVerticalDominant:
+    """Tests for calculate_rotation_angle with vertical dominant peaks."""
+
+    def test_vertical_dominant_peaks(self):
+        """Test with vertically dominant peak positions."""
+        # Center at (100, 100)
+        # Peak at (150, 105) - delta_row=50, delta_col=5, vertical dominant
+        coords = [(100, 100), (150, 105)]
+
+        angle = calculate_rotation_angle(coords)
+
+        # Should calculate angle based on vertical dominant case
+        assert isinstance(angle, float)
+
+    def test_multiple_vertical_dominant_peaks(self):
+        """Test with multiple vertically dominant peaks."""
+        # Center at (100, 100)
+        # Peaks with vertical dominance
+        coords = [
+            (100, 100),  # center
+            (150, 105),  # vertical dominant (delta_row=50, delta_col=5)
+            (50, 95),    # vertical dominant (delta_row=50, delta_col=5)
+        ]
+
+        angle = calculate_rotation_angle(coords)
+
+        assert isinstance(angle, float)
+
+
+class TestCalculateRotationAngleEqualDeltas:
+    """Tests for calculate_rotation_angle when delta_row == delta_col."""
+
+    def test_equal_deltas_are_skipped(self):
+        """Test that peaks with equal deltas are skipped (continue branch)."""
+        # Center at (100, 100)
+        # Peaks with delta_row == delta_col should be skipped
+        coords = [
+            (100, 100),  # center
+            (120, 120),  # delta_row=20, delta_col=20 - equal, should be skipped
+            (150, 100),  # delta_row=50, delta_col=0 - vertical
+        ]
+
+        angle = calculate_rotation_angle(coords)
+
+        # Should still compute an angle (from the non-equal delta peak)
+        assert isinstance(angle, float)
+
+    def test_all_equal_deltas_returns_zero(self):
+        """Test that all equal deltas returns 0."""
+        # Only peaks with equal deltas (diagonal)
+        coords = [
+            (100, 100),  # center
+            (120, 120),  # delta_row=20, delta_col=20
+            (80, 80),    # delta_row=20, delta_col=20
+        ]
+
+        angle = calculate_rotation_angle(coords)
+
+        # When all peaks are skipped, should return 0
+        assert angle == 0.0

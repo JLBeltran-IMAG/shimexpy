@@ -301,7 +301,7 @@ def test_spatial_harmonics_missing_reference_grid():
     test_ft = np.zeros((50, 50), dtype=np.complex128)
     kx = np.linspace(-2, 2, 50)
     ky = np.linspace(-2, 2, 50)
-    
+
     with pytest.raises(ValueError, match="Reference block grid.*must be provided"):
         spatial_harmonics_of_fourier_spectrum(
             fourier_transform=test_ft,
@@ -310,5 +310,168 @@ def test_spatial_harmonics_missing_reference_grid():
             reference=False,
             reference_block_grid=None
         )
+
+
+class TestIdentifyingHarmonicsHigherOrders:
+    """Tests for _identifying_harmonics_x1y1_higher_orders function."""
+
+    def test_diagonal_p1_p1(self):
+        """Test diagonal identification for x>0, y>0."""
+        result = _identifying_harmonics_x1y1_higher_orders(5, 5)
+        assert result == "harmonic_diagonal_p1_p1"
+
+    def test_diagonal_n1_p1(self):
+        """Test diagonal identification for x<0, y>0."""
+        result = _identifying_harmonics_x1y1_higher_orders(-5, 5)
+        assert result == "harmonic_diagonal_n1_p1"
+
+    def test_diagonal_n1_n1(self):
+        """Test diagonal identification for x<0, y<0."""
+        result = _identifying_harmonics_x1y1_higher_orders(-5, -5)
+        assert result == "harmonic_diagonal_n1_n1"
+
+    def test_diagonal_p1_n1(self):
+        """Test diagonal identification for x>0, y<0."""
+        result = _identifying_harmonics_x1y1_higher_orders(5, -5)
+        assert result == "harmonic_diagonal_p1_n1"
+
+    def test_zero_coordinates_raises(self):
+        """Test that x=0 and y=0 raises ValueError."""
+        with pytest.raises(ValueError, match="x and y must be non-zero"):
+            _identifying_harmonics_x1y1_higher_orders(0, 0)
+
+
+class TestIdentifyingHarmonicEqualDeviations:
+    """Tests for _identifying_harmonic when abs_dx == abs_dy (diagonal case)."""
+
+    def test_equal_deviation_positive_positive(self):
+        """Test harmonic identification when abs(dx) == abs(dy) and both positive."""
+        # main harmonic at (50, 50), current at (60, 60)
+        # dx = 10, dy = 10 -> should fall through to diagonal handler
+        result = _identifying_harmonic(50, 50, 60, 60)
+        assert result == "harmonic_diagonal_p1_p1"
+
+    def test_equal_deviation_negative_positive(self):
+        """Test harmonic identification when abs(dx) == abs(dy), dx<0, dy>0."""
+        # main harmonic at (50, 50), current at (60, 40)
+        # dx = -10, dy = 10 -> diagonal
+        result = _identifying_harmonic(50, 50, 60, 40)
+        assert result == "harmonic_diagonal_n1_p1"
+
+    def test_equal_deviation_negative_negative(self):
+        """Test harmonic identification when abs(dx) == abs(dy) and both negative."""
+        # main harmonic at (50, 50), current at (40, 40)
+        # dx = -10, dy = -10 -> diagonal
+        result = _identifying_harmonic(50, 50, 40, 40)
+        assert result == "harmonic_diagonal_n1_n1"
+
+    def test_equal_deviation_positive_negative(self):
+        """Test harmonic identification when abs(dx) == abs(dy), dx>0, dy<0."""
+        # main harmonic at (50, 50), current at (40, 60)
+        # dx = 10, dy = -10 -> diagonal
+        result = _identifying_harmonic(50, 50, 40, 60)
+        assert result == "harmonic_diagonal_p1_n1"
+
+
+class TestShiFFTAutoSelection:
+    """Tests for shi_fft auto-selection behavior."""
+
+    def test_shi_fft_selects_cpu_without_cuda(self):
+        """Test shi_fft returns FFTResult (auto-selects CPU without CUDA)."""
+        from shimexpy.core.spatial_harmonics import shi_fft, _USE_CUDA, FFTResult as LocalFFTResult
+
+        test_image = np.random.rand(64, 64).astype(np.float32)
+        result = shi_fft(test_image)
+
+        assert isinstance(result, LocalFFTResult)
+        assert result.fft is not None
+        assert result.fft.shape == test_image.shape
+
+    def test_shi_fft_cpu_vs_auto_same_result(self):
+        """Test that shi_fft and shi_fft_cpu produce same results when no GPU."""
+        from shimexpy.core.spatial_harmonics import shi_fft, shi_fft_cpu, _USE_CUDA
+
+        if _USE_CUDA:
+            pytest.skip("Test only valid when CUDA is not available")
+
+        test_image = np.random.rand(32, 32).astype(np.float32)
+
+        result_auto = shi_fft(test_image)
+        result_cpu = shi_fft_cpu(test_image)
+
+        np.testing.assert_array_almost_equal(result_auto.fft, result_cpu.fft)
+
+
+class TestCuPyImportCoverage:
+    """Tests related to CuPy import coverage (lines 14-15)."""
+
+    def test_use_cuda_is_boolean(self):
+        """Test that _USE_CUDA is set correctly based on CuPy availability."""
+        from shimexpy.core.spatial_harmonics import _USE_CUDA
+
+        assert isinstance(_USE_CUDA, bool)
+
+    def test_can_check_cuda_availability(self):
+        """Test that we can check CUDA availability without error."""
+        from shimexpy.core.spatial_harmonics import _USE_CUDA
+
+        # Just verify we can access this attribute
+        if _USE_CUDA:
+            # CuPy is available
+            import cupy
+        else:
+            # CuPy is not available - this is fine
+            pass
+
+
+class TestShiFFTGPUIfAvailable:
+    """Tests for shi_fft_gpu function if CUDA is available."""
+
+    def test_shi_fft_gpu_if_available(self):
+        """Test shi_fft_gpu if CuPy is installed."""
+        from shimexpy.core.spatial_harmonics import _USE_CUDA
+
+        if not _USE_CUDA:
+            pytest.skip("CuPy not available")
+
+        from shimexpy.core.spatial_harmonics import shi_fft_gpu
+
+        test_image = np.random.rand(64, 64).astype(np.float32)
+        result = shi_fft_gpu(test_image)
+
+        assert isinstance(result, FFTResult)
+        assert result.fft is not None
+        assert result.fft.shape == test_image.shape
+
+    def test_shi_fft_gpu_with_grid_if_available(self):
+        """Test shi_fft_gpu with projected_grid if CuPy is installed."""
+        from shimexpy.core.spatial_harmonics import _USE_CUDA
+
+        if not _USE_CUDA:
+            pytest.skip("CuPy not available")
+
+        from shimexpy.core.spatial_harmonics import shi_fft_gpu
+
+        test_image = np.random.rand(64, 64).astype(np.float32)
+        result = shi_fft_gpu(test_image, projected_grid=5.0)
+
+        assert result.kx is not None
+        assert result.ky is not None
+        assert len(result.kx) == test_image.shape[1]
+        assert len(result.ky) == test_image.shape[0]
+
+    def test_shi_fft_gpu_logspect_if_available(self):
+        """Test shi_fft_gpu with logspect if CuPy is installed."""
+        from shimexpy.core.spatial_harmonics import _USE_CUDA
+
+        if not _USE_CUDA:
+            pytest.skip("CuPy not available")
+
+        from shimexpy.core.spatial_harmonics import shi_fft_gpu
+
+        test_image = np.random.rand(64, 64).astype(np.float32)
+        result = shi_fft_gpu(test_image, logspect=True)
+
+        assert np.all(result.fft >= 0), "Log spectrum should be non-negative"
 
 

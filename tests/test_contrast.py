@@ -269,3 +269,263 @@ class TestContrastModuleImports:
         )
         assert callable(_compute_phase_map)
         assert callable(_compute_scattering)
+
+
+class TestComputePhaseMapViaContrastRetrieval:
+    """Tests for phasemap contrast retrieval with different unwrap options."""
+
+    def test_contrast_retrieval_phasemap_least_squares(self):
+        """Test phasemap contrast retrieval with least_squares unwrap."""
+        # Create mock harmonics in frequency space
+        ky = np.linspace(-0.5, 0.5, 32)
+        kx = np.linspace(-0.5, 0.5, 32)
+
+        harmonics_list = ["harmonic_00", "harmonic_horizontal_positive"]
+        data = (np.random.rand(len(harmonics_list), 32, 32) +
+                1j * np.random.rand(len(harmonics_list), 32, 32)).astype(np.complex64)
+        data[0] = data[0] + 1.0  # Ensure non-zero main harmonic
+
+        da = xr.DataArray(
+            data,
+            dims=['harmonic', 'ky', 'kx'],
+            coords={
+                'harmonic': harmonics_list,
+                'ky': ky,
+                'kx': kx
+            }
+        )
+
+        result = contrast_retrieval(da, "phasemap", unwrap="least_squares")
+
+        assert result is not None
+        assert 'y' in result.dims
+        assert 'x' in result.dims
+
+    def test_contrast_retrieval_phasemap_invalid_unwrap_raises(self):
+        """Test that invalid unwrap algorithm raises ValueError."""
+        ky = np.linspace(-0.5, 0.5, 16)
+        kx = np.linspace(-0.5, 0.5, 16)
+
+        harmonics_list = ["harmonic_00", "harmonic_horizontal_positive"]
+        data = (np.random.rand(len(harmonics_list), 16, 16) +
+                1j * np.random.rand(len(harmonics_list), 16, 16)).astype(np.complex64)
+        data[0] = data[0] + 1.0
+
+        da = xr.DataArray(
+            data,
+            dims=['harmonic', 'ky', 'kx'],
+            coords={
+                'harmonic': harmonics_list,
+                'ky': ky,
+                'kx': kx
+            }
+        )
+
+        with pytest.raises(ValueError, match="Unknown phase unwrapping algorithm"):
+            contrast_retrieval(da, "phasemap", unwrap="invalid_algorithm")
+
+
+class TestGetHarmonicsWithBlockGrid:
+    """Tests for get_harmonics with pre-existing block_grid."""
+
+    def test_get_harmonics_with_existing_block_grid(self, reference_image):
+        """Test get_harmonics uses existing block_grid when provided."""
+        from shimexpy.core.contrast import get_harmonics
+
+        # First call without block_grid to get one
+        _, _, _, ref_block_grid = get_harmonics(reference_image, projected_grid=5.0)
+
+        # Second call with existing block_grid (covers line 244-245)
+        absorption, scattering, diff_phase, returned_grid = get_harmonics(
+            reference_image, projected_grid=5.0, block_grid=ref_block_grid
+        )
+
+        assert isinstance(absorption, xr.DataArray)
+        assert isinstance(scattering, xr.DataArray)
+        # The returned grid should match the one we passed in
+        assert returned_grid == ref_block_grid
+
+
+class TestGetContrastDirections:
+    """Tests for get_contrast with different directions and contrast types."""
+
+    def test_get_contrast_vertical_scattering(self, reference_image, sample_image):
+        """Test get_contrast with vertical_scattering."""
+        from shimexpy.core.contrast import get_contrast, get_harmonics
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        contrast = get_contrast(
+            sample_image,
+            ref_scattering,
+            ref_block_grid,
+            "vertical_scattering"
+        )
+
+        assert isinstance(contrast, (np.ndarray, xr.DataArray))
+
+    def test_get_contrast_bidirectional_scattering(self, reference_image, sample_image):
+        """Test get_contrast with bidirectional_scattering."""
+        from shimexpy.core.contrast import get_contrast, get_harmonics
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        contrast = get_contrast(
+            sample_image,
+            ref_scattering,
+            ref_block_grid,
+            "bidirectional_scattering"
+        )
+
+        assert isinstance(contrast, (np.ndarray, xr.DataArray))
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_contrast_vertical_phasemap(self, reference_image, sample_image):
+        """Test get_contrast with vertical_phasemap (covers lines 306-308)."""
+        from shimexpy.core.contrast import get_contrast, get_harmonics
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        contrast = get_contrast(
+            sample_image,
+            ref_diff_phase,
+            ref_block_grid,
+            "vertical_phasemap"
+        )
+
+        assert isinstance(contrast, (np.ndarray, xr.DataArray))
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_contrast_bidirectional_phasemap(self, reference_image, sample_image):
+        """Test get_contrast with bidirectional_phasemap (covers lines 309-311)."""
+        from shimexpy.core.contrast import get_contrast, get_harmonics
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        contrast = get_contrast(
+            sample_image,
+            ref_diff_phase,
+            ref_block_grid,
+            "bidirectional_phasemap"
+        )
+
+        assert isinstance(contrast, (np.ndarray, xr.DataArray))
+
+    def test_get_contrast_invalid_type_raises(self, reference_image, sample_image):
+        """Test get_contrast raises for invalid contrast type."""
+        from shimexpy.core.contrast import get_contrast, get_harmonics
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        with pytest.raises(ValueError, match="Unknown type_of_contrast"):
+            get_contrast(
+                sample_image,
+                ref_absorption,
+                ref_block_grid,
+                "invalid_type"
+            )
+
+
+class TestGetContrastsFunction:
+    """Tests for get_contrasts function (lines 345-382)."""
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_contrasts_returns_three_elements(self, reference_image, sample_image):
+        """Test get_contrasts returns (absorption, scattering, phase)."""
+        from shimexpy.core.contrast import get_harmonics, get_contrasts
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        reference = (ref_absorption, ref_scattering, ref_diff_phase)
+
+        absorption, scattering, diff_phase = get_contrasts(
+            sample_image,
+            reference,
+            ref_block_grid
+        )
+
+        assert isinstance(absorption, (np.ndarray, xr.DataArray))
+        assert isinstance(scattering, (np.ndarray, xr.DataArray))
+        assert isinstance(diff_phase, (np.ndarray, xr.DataArray))
+
+
+class TestGetAllContrastsFunction:
+    """Tests for get_all_contrasts function (lines 410-437)."""
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_all_contrasts_basic(self, reference_image, sample_image):
+        """Test get_all_contrasts computes all contrast types."""
+        from shimexpy.core.contrast import get_all_contrasts
+
+        absorption, scattering, diff_phase = get_all_contrasts(
+            sample_image,
+            reference_image,
+            projected_grid=5.0
+        )
+
+        assert isinstance(absorption, (np.ndarray, xr.DataArray))
+        assert isinstance(scattering, (np.ndarray, xr.DataArray))
+        assert isinstance(diff_phase, (np.ndarray, xr.DataArray))
+
+
+class TestGetAllHarmonicContrastsFunction:
+    """Tests for get_all_harmonic_contrasts function (lines 466-531)."""
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_all_harmonic_contrasts_basic(self, reference_image, sample_image):
+        """Test get_all_harmonic_contrasts returns expected structure."""
+        from shimexpy.core.contrast import get_harmonics, get_all_harmonic_contrasts
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        reference = (ref_absorption, ref_scattering, ref_diff_phase)
+
+        result = get_all_harmonic_contrasts(
+            sample_image,
+            reference,
+            ref_block_grid
+        )
+
+        assert isinstance(result, xr.DataArray)
+        assert 'contrast' in result.dims
+        # Should have absorption + (scattering + phase) for each direction
+        assert len(result.coords['contrast']) > 0
+
+    @pytest.mark.skip(reason="skimage unwrap_phase segfaults with dask parallelization")
+    def test_get_all_harmonic_contrasts_contrast_labels(self, reference_image, sample_image):
+        """Test get_all_harmonic_contrasts has expected contrast labels."""
+        from shimexpy.core.contrast import get_harmonics, get_all_harmonic_contrasts
+
+        ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+            reference_image, projected_grid=5.0
+        )
+
+        reference = (ref_absorption, ref_scattering, ref_diff_phase)
+
+        result = get_all_harmonic_contrasts(
+            sample_image,
+            reference,
+            ref_block_grid
+        )
+
+        # Check expected contrast labels are present
+        labels = list(result.coords['contrast'].values)
+        assert 'absorption' in labels
+        assert 'scattering_horizontal' in labels
+        assert 'scattering_vertical' in labels
+        assert 'diff_phase_horizontal' in labels
+        assert 'diff_phase_vertical' in labels

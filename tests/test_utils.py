@@ -191,3 +191,72 @@ class TestUtilsModuleImports:
         from shimexpy import apply_harmonic_chunking
 
         assert callable(apply_harmonic_chunking)
+
+
+class TestMoveToCpuWithCuPy:
+    """Tests for move_to_cpu with CuPy if available."""
+
+    def test_move_to_cpu_with_cupy_data_if_available(self):
+        """Test move_to_cpu transfers CuPy array to NumPy if CuPy is available."""
+        if not _HAS_CUPY:
+            pytest.skip("CuPy not available")
+
+        import cupy as cp
+
+        # Create a CuPy array
+        gpu_data = cp.random.rand(10, 10).astype(cp.float32)
+        da = xr.DataArray(gpu_data, dims=['y', 'x'])
+
+        result = move_to_cpu(da)
+
+        # Data should now be a NumPy array
+        assert isinstance(result.data, np.ndarray)
+        assert not isinstance(result.data, cp.ndarray)
+
+    def test_move_to_cpu_preserves_values_from_cupy(self):
+        """Test move_to_cpu preserves values when transferring from CuPy."""
+        if not _HAS_CUPY:
+            pytest.skip("CuPy not available")
+
+        import cupy as cp
+
+        # Create data first on CPU, then transfer to GPU
+        cpu_data = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+        gpu_data = cp.asarray(cpu_data)
+        da = xr.DataArray(gpu_data, dims=['y', 'x'])
+
+        result = move_to_cpu(da)
+
+        # Values should be preserved
+        np.testing.assert_array_almost_equal(result.data, cpu_data)
+
+    def test_cupy_import_sets_has_cupy_true(self):
+        """Test that _HAS_CUPY is True when CuPy is importable."""
+        if not _HAS_CUPY:
+            pytest.skip("CuPy not available")
+
+        # If CuPy is available, _HAS_CUPY should be True
+        assert _HAS_CUPY is True
+
+        # And cp should be defined (not None)
+        from shimexpy.utils.parallelization import cp
+        assert cp is not None
+
+
+class TestCuPyNotAvailable:
+    """Tests for behavior when CuPy is not available."""
+
+    def test_has_cupy_false_when_no_cupy(self):
+        """Test _HAS_CUPY is False when CuPy cannot be imported."""
+        if _HAS_CUPY:
+            pytest.skip("CuPy is available, cannot test unavailable case")
+
+        assert _HAS_CUPY is False
+
+    def test_cp_is_none_when_no_cupy(self):
+        """Test cp module reference is None when CuPy not available."""
+        if _HAS_CUPY:
+            pytest.skip("CuPy is available, cannot test unavailable case")
+
+        from shimexpy.utils.parallelization import cp
+        assert cp is None
