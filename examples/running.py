@@ -19,13 +19,13 @@ sample_img = imread("tests/test_sample.tif")
 ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(reference_img, projected_grid=5)
 
 
-print(
-    benchmark(
-        get_contrast,
-        (sample_img, ref_absorption, ref_block_grid, "absorption"),
-        n_repeat=5
-    )
-)
+# print(
+#     benchmark(
+#         get_contrast,
+#         (sample_img, ref_absorption, ref_block_grid, "absorption"),
+#         n_repeat=5
+#     )
+# )
 
 # print(
 #     benchmark(
@@ -35,13 +35,13 @@ print(
 #     )
 # )
 
-# print(
-#     benchmark(
-#         get_contrast,
-#         (sample_img, ref_scattering, ref_block_grid, "horizontal_scattering"),
-#         n_repeat=5
-#     )
-# )
+print(
+    benchmark(
+        get_contrast,
+        (sample_img, ref_scattering, ref_block_grid, "bidirectional_scattering"),
+        n_repeat=5
+    )
+)
 
 # print(
 #     benchmark(

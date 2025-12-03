@@ -34,14 +34,14 @@ CONTRASTS = {
 
 
 HARMONICS = [
-        "harmonic_diagonal_p1_p1",
-        "harmonic_diagonal_n1_p1",
-        "harmonic_diagonal_n1_n1",
-        "harmonic_diagonal_p1_n1",
-        "harmonic_vertical_positive",
-        "harmonic_vertical_negative",
-        "harmonic_horizontal_positive",
-        "harmonic_horizontal_negative"
+    "harmonic_diagonal_p1_p1",
+    "harmonic_diagonal_n1_p1",
+    "harmonic_diagonal_n1_n1",
+    "harmonic_diagonal_p1_n1",
+    "harmonic_vertical_positive",
+    "harmonic_vertical_negative",
+    "harmonic_horizontal_positive",
+    "harmonic_horizontal_negative"
 ]
 
 

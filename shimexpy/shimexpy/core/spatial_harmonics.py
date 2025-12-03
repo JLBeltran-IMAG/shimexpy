@@ -12,7 +12,7 @@ from dataclasses import dataclass
 try:
     import cupy as cp
     import cupyx.scipy.fft as cufft
-    _USE_CUDA = True
+    _USE_CUDA = cp.is_available()
 except ImportError:
     _USE_CUDA = False
 
