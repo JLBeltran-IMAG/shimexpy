@@ -238,7 +238,7 @@ class FFCQualityAssessment:
         text = (
             f"Std Difference: {diff.std():.2f}\n"
             f"Std Reduction: {statistics['std_reduction_%']:.1f}%\n"
-            f"Ptp Reduction: {statistics['ptp_reduction_%']:.1f}%\n"
+            f"Ptp Reduction: {statistics['ptp_reduction_%']:.1f}%"
         )
         axes[2].text(
             0.02,
