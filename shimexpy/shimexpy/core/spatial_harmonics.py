@@ -13,7 +13,7 @@ try:
     import cupy as cp
     import cupyx.scipy.fft as cufft
     _USE_CUDA = cp.is_available()
-except ImportError:
+except Exception:
     _USE_CUDA = False
 
 

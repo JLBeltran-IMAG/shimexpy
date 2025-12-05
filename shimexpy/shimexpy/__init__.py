@@ -37,7 +37,7 @@ from shimexpy.io.file_io import (
     cli_export
 )
 
-from shimexpy.utils.ffc import ffc
+from shimexpy.utils.ffc import ffc, FFCQualityAssessment
 from shimexpy.utils.crop import cropImage as crop
 from shimexpy.utils.parallelization import apply_harmonic_chunking
 
@@ -70,6 +70,7 @@ __all__ = [
 
     # Utilities
     "ffc",
+    "FFCQualityAssessment",
     "crop",
     "apply_harmonic_chunking"
 ]
