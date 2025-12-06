@@ -242,7 +242,7 @@ class FFCQualityAssessment:
         )
         axes[2].text(
             0.02,
-            0.02,
+            0.04,
             text,
             transform=axes[2].transAxes,
             fontsize=9,
