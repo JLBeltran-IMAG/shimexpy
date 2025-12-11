@@ -1,23 +1,14 @@
-# ShimExPy: Spatial Harmonics Imaging for X-ray Physics
+# Shimexpy: A python package for Spatial Harmonics Imaging and mesh-based X-ray Imaging
 
 ShimExPy is a Python package for spatial harmonics X-ray imaging analysis. It provides tools for performing spatial harmonics analysis on X-ray images, extracting absorption, scattering, and phase contrast.
-
-## Features
-
-- Fast Fourier Transform (FFT) based spatial harmonics analysis
-- GPU acceleration for FFT computation via CuPy
-- Multiple phase unwrapping algorithms
-- Contrast retrieval for absorption, scattering, and phase map
-- GUI for interactive image analysis
-- I/O utilities for loading and saving data
-- Visualization tools for displaying results
 
 ## Installation
 
 ### Prerequisites
 
 - Python 3.7+
-- CUDA 12.x (for GPU acceleration)
+- CUDA (for GPU acceleration) - optional, but recomandable
+- 
 
 ### Basic Installation
 
