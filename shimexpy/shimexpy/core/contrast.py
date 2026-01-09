@@ -20,29 +20,33 @@ from shimexpy.utils.parallelization import apply_harmonic_chunking
 # Contrast retrieval specifications
 # These are the types of contrast that can be retrieved for "get_contrast(...)" function
 CONTRASTS = {
-    "horizontal": ["harmonic_horizontal_positive", "harmonic_horizontal_negative"],
-    "vertical": ["harmonic_vertical_positive",   "harmonic_vertical_negative"],
+    "horizontal": [
+        "harmonic_horizontal_positive",
+        "harmonic_horizontal_negative",
+        "harmonic_diagonal_p1_p1",
+        "harmonic_diagonal_n1_n1",
+        "harmonic_diagonal_p1_n1",
+        "harmonic_diagonal_n1_p1"
+    ],
+    "vertical": [
+        "harmonic_vertical_positive",
+        "harmonic_vertical_negative",
+        "harmonic_diagonal_p1_p1",
+        "harmonic_diagonal_n1_n1",
+        "harmonic_diagonal_p1_n1",
+        "harmonic_diagonal_n1_p1"
+    ],
     "bidirectional": [
-        "harmonic_horizontal_positive", "harmonic_horizontal_negative",
-        "harmonic_vertical_positive", "harmonic_vertical_negative"
-    ]#,
-    # "diagonal": [
-    #     "harmonic_diagonal_p1_p1", "harmonic_diagonal_n1_n1",
-    #     "harmonic_diagonal_p1_n1", "harmonic_diagonal_n1_p1"
-    # ]
+        "harmonic_horizontal_positive",
+        "harmonic_horizontal_negative",
+        "harmonic_vertical_positive",
+        "harmonic_vertical_negative",
+        "harmonic_diagonal_p1_p1",
+        "harmonic_diagonal_n1_n1",
+        "harmonic_diagonal_p1_n1",
+        "harmonic_diagonal_n1_p1"
+    ]
 }
-
-
-HARMONICS = [
-    "harmonic_diagonal_p1_p1",
-    "harmonic_diagonal_n1_p1",
-    "harmonic_diagonal_n1_n1",
-    "harmonic_diagonal_p1_n1",
-    "harmonic_vertical_positive",
-    "harmonic_vertical_negative",
-    "harmonic_horizontal_positive",
-    "harmonic_horizontal_negative"
-]
 
 
 # -------------------- contrast retrieval
@@ -53,7 +57,8 @@ def _compute_phase_map(
     eps: float = 1e-12
 ):
     """
-    Computes the unwrapped phase map from the inverse Fourier transform and the main harmonic.
+    Computes the unwrapped phase map from the inverse Fourier transform
+    and the main harmonic.
 
     Parameters:
     -----------
@@ -64,7 +69,8 @@ def _compute_phase_map(
     unwrap : str, optional
         The unwrapping algorithm to use. Default is None (uses skimage_unwrap).
     eps : float, optional
-        Small value added to the denominator to avoid division by zero (default is 1e-12).
+        Small value added to the denominator to avoid
+        division by zero (default is 1e-12).
 
     Returns:
     --------
@@ -103,7 +109,8 @@ def _compute_phase_map(
 
 def _compute_scattering(ifft_harmonics, main_harmonic, eps=1e-12):
     """
-    Computes the scattering value from the inverse Fourier transform and the main harmonic.
+    Computes the scattering value from the inverse Fourier transform
+    and the main harmonic.
 
     Parameters:
     -----------
@@ -112,7 +119,8 @@ def _compute_scattering(ifft_harmonics, main_harmonic, eps=1e-12):
     main_harmonic : np.ndarray
         Array containing the main harmonic in the Fourier domain.
     eps : float, optional
-        Small value added to the denominator to avoid division by zero (default is 1e-12).
+        Small value added to the denominator to avoid
+        division by zero (default is 1e-12).
 
     Returns:
     --------
@@ -205,19 +213,88 @@ def contrast_retrieval(
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")
 
 
-# -------------------- main functions REAL TIME
+# --------------- Dark-field estimation
+def _harmonic_direction_weights(
+    block_grid: dict, labels: list, direction: str
+) -> xr.DataArray:
+    """
+    Calculates weights based on the spatial direction of harmonic blocks relative to a reference block.
+
+    This function computes the directional weight for each harmonic block defined in `labels`,
+    relative to the 'harmonic_00' reference block found in `block_grid`. It calculates
+    the centroids of the blocks and determines weights based on the specified `direction`.
+
+    Parameters
+    ----------
+    block_grid : dict
+        A dictionary where keys are harmonic labels (str) and values are tuples or lists
+        containing boundary coordinates in the order (top, bottom, left, right).
+        Must contain the key "harmonic_00" to serve as the reference origin.
+    labels : list
+        A list of strings representing the harmonic labels for which weights should be calculated.
+    direction : str
+        The direction to emphasize. Options are:
+        - "horizontal": Weights are based on the horizontal distance ratio (wx / hypotenuse).
+        - "vertical": Weights are based on the vertical distance ratio (wy / hypotenuse).
+        - "bidirectional": All weights are set to 1.0.
+
+    Returns
+    -------
+    xr.DataArray
+        An xarray DataArray containing the calculated weights.
+        - Dims: ["harmonic"]
+        - Coords: {"harmonic": labels}
+        - Dtype: np.float32
+
+    Raises
+    ------
+    ValueError
+        If the provided `direction` is not one of "horizontal", "vertical", or "bidirectional".
+    """
+    top0, bottom0, left0, right0 = block_grid["harmonic_00"]
+    cy0 = 0.5 * (top0 + bottom0)
+    cx0 = 0.5 * (left0 + right0)
+
+    w = []
+
+    for label in labels:
+        top, bottom, left, right = block_grid[label]
+        cy = 0.5 * (top + bottom)
+        cx = 0.5 * (left + right)
+
+        wx = abs(cx - cx0)
+        wy = abs(cy - cy0)
+        hyp = np.hypot(wx, wy)
+
+        if direction == "horizontal": w.append(wx / hyp)
+        elif direction == "vertical": w.append(wy / hyp)
+        elif direction == "bidirectional": w.append(1.0)
+        else: raise ValueError(f"Unknown direction: {direction}")
+
+    weights = xr.DataArray(
+        np.asarray(w, dtype=np.float32),
+        dims=["harmonic"],
+        coords={"harmonic": labels}
+    )
+
+    return weights
+
+
+# -------------------- main functions
 def get_harmonics(image, projected_grid, block_grid=None, unwrap = None):
     """
     Set reference image for spatial harmonics analysis.
-    This function performs spatial harmonics analysis on a given image and returns the
-    absorption, scattering, and differential phase maps, along with the block grid for harmonics.
+    This function performs spatial harmonics analysis on a given image
+    and returns the absorption, scattering, and differential phase maps,
+    along with the block grid for harmonics.
 
     Parameters
     ----------
     image : np.ndarray
         The input image to analyze.
     projected_grid : float
-        The projected grid period (in real-space units) used to compute the spatial frequency axes.
+        The projected grid period (in real-space units) used to compute
+        the spatial frequency axes.
     block_grid : dict, optional
         A dictionary containing the limits for each harmonic in the reference image.
     unwrap : str, optional
@@ -247,7 +324,7 @@ def get_harmonics(image, projected_grid, block_grid=None, unwrap = None):
         harmonics, block_grid = spatial_harmonics_of_fourier_spectrum(fft_img, ky, kx, reference=True)
 
     # Chunk the harmonics for parallel processing
-    harmonics_chunked = harmonics.chunk({"harmonic": 1, "ky": "auto", "kx": "auto"})
+    harmonics_chunked = harmonics.chunk({"harmonic": 1, "ky": -1, "kx": -1})
 
     # Compute the contrasts from the harmonics
     absolute_absorption = contrast_retrieval(harmonics_chunked, type_of_contrast="absorption")
@@ -257,18 +334,22 @@ def get_harmonics(image, projected_grid, block_grid=None, unwrap = None):
     return absolute_absorption, absolute_scattering, absolute_diff_phase, block_grid
 
 
-def get_contrast(sample_img, reference, ref_block_grid, type_of_contrast, unwrap = None):
+def get_contrast(
+    sample_img, reference, ref_block_grid, type_of_contrast, unwrap = None
+):
     """
-    Execute spatial harmonics analysis on a sample image and retrieve the specified contrast.
-    This function performs spatial harmonics analysis on a sample image and computes the contrast
-    with respect to a reference image.
+    Execute spatial harmonics analysis on a sample image and retrieve
+    the specified contrast.
+    This function performs spatial harmonics analysis on a sample image
+    and computes the contrast with respect to a reference image.
 
     Parameters
     ----------
     sample_img : np.ndarray
         The sample image to analyze.
     reference : xr.DataArray
-        The reference image containing the pre-computed contrasts (absorption, scattering, phase map).
+        The reference image containing the pre-computed contrasts
+        (absorption, scattering, phase map).
     ref_block_grid : dict
         A dictionary containing the limits for each harmonic in the reference image.
     type_of_contrast : str
@@ -288,7 +369,7 @@ def get_contrast(sample_img, reference, ref_block_grid, type_of_contrast, unwrap
     sample_harmonics, _ = spatial_harmonics_of_fourier_spectrum(
         sample_result.fft, None, None, reference=False, reference_block_grid=ref_block_grid
     )
-    sample_harmonics_chunked = sample_harmonics.chunk({"harmonic": 1, "ky": "auto", "kx": "auto"})
+    sample_harmonics_chunked = sample_harmonics.chunk({"harmonic": 1, "ky": -1, "kx": -1})
 
     if type_of_contrast == "absorption":
         sample_contrast = contrast_retrieval(sample_harmonics_chunked, "absorption")
@@ -296,12 +377,14 @@ def get_contrast(sample_img, reference, ref_block_grid, type_of_contrast, unwrap
 
     elif "_scattering" in type_of_contrast or "_phasemap" in type_of_contrast:
         direction, contrasts = type_of_contrast.split('_')
-        harmonics = CONTRASTS[direction]
         sample_contrast = contrast_retrieval(sample_harmonics_chunked, contrasts, unwrap=unwrap)
+
+        harmonics = CONTRASTS[direction]
+        weights = _harmonic_direction_weights(ref_block_grid, harmonics, direction)
         result = sample_contrast.sel(harmonic=harmonics) - reference.sel(harmonic=harmonics)
 
         if contrasts == "scattering":
-            output = result.sum("harmonic")
+            output = abs(result * weights).sum("harmonic")
         else:
             positive, negative = harmonics[0], harmonics[1]
             output = result.sel(harmonic=positive) - result.sel(harmonic=negative)
@@ -317,7 +400,7 @@ def get_contrast(sample_img, reference, ref_block_grid, type_of_contrast, unwrap
     return contrast
 
 
-def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None, crop = None):
+def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None):
     """
     Compute all contrast types for a sample image against reference images.
     
@@ -326,19 +409,18 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None, crop = N
     sample_img : np.ndarray
         The sample image to analyze.
     reference : tuple
-        A tuple containing (reference_absorption, reference_scattering, reference_diff_phase).
+        A tuple containing (reference_absorption, reference_scattering, 
+        reference_diff_phase).
     ref_block_grid : dict
         A dictionary containing the limits for each harmonic in the reference image.
     unwrap : str, optional
         The unwrapping algorithm to use for phase map retrieval. Default is None.
-    crop : tuple, optional
-        A tuple specifying the crop region to apply to the sample image.
-        If None, no cropping is applied.
         
     Returns
     -------
     tuple
-        A tuple containing (absorption_contrast, scattering_contrast, diff_phase_contrast).
+        A tuple containing (absorption_contrast, scattering_contrast, 
+        diff_phase_contrast).
     """
     # Sample
     # Contrast retrieval of sample image
@@ -351,20 +433,32 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None, crop = N
         reference=False,
         reference_block_grid=ref_block_grid
     )
-    sample_harmonics_chunked = sample_harmonics.chunk({"harmonic": 1, "ky": "auto", "kx": "auto"})
+    sample_harmonics_chunked = sample_harmonics.chunk(
+        {"harmonic": 1, "ky": -1, "kx": -1}
+    )
 
     # Contrast retrieval reference and sample images
-    sample_absorption = contrast_retrieval(sample_harmonics_chunked, "absorption")
-    sample_scattering = contrast_retrieval(sample_harmonics_chunked, "scattering")
-    sample_diff_phase = contrast_retrieval(sample_harmonics_chunked, "phasemap", unwrap=unwrap)
+    sample_absorption = contrast_retrieval(
+        sample_harmonics_chunked, "absorption"
+    )
+    sample_scattering = contrast_retrieval(
+        sample_harmonics_chunked, "scattering"
+    )
+    sample_diff_phase = contrast_retrieval(
+        sample_harmonics_chunked, "phasemap", unwrap=unwrap
+    )
 
     harmonics = CONTRASTS["bidirectional"]
+    weights = _harmonic_direction_weights(ref_block_grid, harmonics, "bidirectional")
+    # result = sample_contrast.sel(harmonic=harmonics) - reference.sel(harmonic=harmonics)
 
     absorption = sample_absorption - reference[0]
-    scattering = sample_scattering.sel(harmonic=harmonics) - reference[1].sel(harmonic=harmonics)
-    diff_phase = sample_diff_phase.sel(harmonic=harmonics) - reference[2].sel(harmonic=harmonics)
+    scattering = (sample_scattering.sel(harmonic=harmonics) - 
+                  reference[1].sel(harmonic=harmonics))
+    diff_phase = (sample_diff_phase.sel(harmonic=harmonics) - 
+                  reference[2].sel(harmonic=harmonics))
 
-    scattering = scattering.sum("harmonic")
+    scattering = abs(scattering * weights).sum("harmonic")
     diff_phase = (
         diff_phase.sel(harmonic="harmonic_horizontal_positive")
         - diff_phase.sel(harmonic="harmonic_horizontal_negative")
@@ -375,9 +469,11 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None, crop = N
     # ---------
     #  Compute
     # ---------
-    (absorption_contrast,
-    scattering_contrast,
-    diff_phase_contrast) = compute(absorption, scattering, diff_phase)
+    (
+        absorption_contrast,
+        scattering_contrast,
+        diff_phase_contrast
+    ) = compute(absorption, scattering, diff_phase)
 
     return absorption_contrast, scattering_contrast, diff_phase_contrast
 
@@ -396,14 +492,16 @@ def get_all_contrasts(sample_img, reference_img, projected_grid, unwrap = None):
     reference_img : np.ndarray
         The reference image to compare against.
     projected_grid : float
-        The projected grid period (in real-space units) used to compute the spatial frequency axes.
+        The projected grid period (in real-space units) used to compute the spatial 
+        frequency axes.
     unwrap : str, optional
         The unwrapping algorithm to use for phase map retrieval. Default is None.
         
     Returns
     -------
     tuple
-        A tuple containing (absorption_contrast, scattering_contrast, diff_phase_contrast).
+        A tuple containing (absorption_contrast, scattering_contrast, 
+        diff_phase_contrast).
     """
     # Reference
     # Contrast retrieval of reference image
@@ -437,18 +535,21 @@ def get_all_contrasts(sample_img, reference_img, projected_grid, unwrap = None):
     return absorption_contrast, scattering_contrast, diff_phase_contrast
 
 
-def get_all_harmonic_contrasts(sample_img, reference, ref_block_grid, unwrap=None, crop=None):
+def get_all_harmonic_contrasts(
+    sample_img, reference, ref_block_grid, unwrap=None
+):
     """
     Compute harmonic-level contrasts for a sample image against reference harmonics.
-    Unlike get_contrasts(), this function returns the contrasts for each individual harmonic,
-    not the combined absorption/scattering/phase contrasts.
+    Unlike get_contrasts(), this function returns the contrasts for each individual 
+    harmonic, not the combined absorption/scattering/phase contrasts.
 
     Parameters
     ----------
     sample_img : np.ndarray
         The sample image to analyze.
     reference : tuple
-        A tuple containing (reference_absorption, reference_scattering, reference_diff_phase).
+        A tuple containing (reference_absorption, reference_scattering, 
+        reference_diff_phase).
     ref_block_grid : dict
         The harmonic block grid from the reference image.
     unwrap : str, optional

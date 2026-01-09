@@ -7,8 +7,6 @@ This package provides tools for spatial harmonics X-ray imaging analysis.
 
 # Import main functionality
 from shimexpy.core.spatial_harmonics import (
-    shi_fft_gpu,
-    shi_fft_cpu,
     shi_fft,
     spatial_harmonics_of_fourier_spectrum
 )
@@ -33,8 +31,7 @@ from shimexpy.io.file_io import (
     save_block_grid,
     load_block_grid,
     save_results,
-    load_results,
-    cli_export
+    load_results
 )
 
 from shimexpy.utils.ffc import ffc, FFCQualityAssessment
@@ -44,8 +41,6 @@ from shimexpy.utils.parallelization import apply_harmonic_chunking
 
 __all__ = [
     # Spatial Harmonics
-    "shi_fft_gpu",
-    "shi_fft_cpu",
     "shi_fft",
     "spatial_harmonics_of_fourier_spectrum",
     "contrast_retrieval",
@@ -66,7 +61,6 @@ __all__ = [
     "load_block_grid",
     "save_results",
     "load_results",
-    "cli_export",
 
     # Utilities
     "ffc",

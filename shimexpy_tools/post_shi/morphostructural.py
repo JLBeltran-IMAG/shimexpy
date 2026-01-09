@@ -20,9 +20,9 @@ from .logic.sync_controller import SyncController
 from .data.annotation_data import save_annotations_to_json, load_annotations_from_json
 from .utils.image_loader import ImageLoader, ImageLoadError
 
-from src.shi_core.cleaner import Cleaner
-from src.shi_core.exceptions import SHIError
-from src.shi_core.logging import logger
+from .utils.cleaner import Cleaner
+from .utils.exceptions import SHIError
+from .utils.logging import logger
 
 
 import os

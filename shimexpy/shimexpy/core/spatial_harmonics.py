@@ -24,7 +24,7 @@ class FFTResult:
     fft: np.ndarray
 
 
-def shi_fft_gpu(
+def _shi_fft_gpu(
     image: np.ndarray,
     projected_grid: float | None = None,
     logspect: bool = False
@@ -82,7 +82,7 @@ def shi_fft_gpu(
     return FFTResult(None, None, img_fft)
 
 
-def shi_fft_cpu(
+def _shi_fft_cpu(
     image: np.ndarray,
     projected_grid: float | None = None,
     logspect: bool = False
@@ -159,9 +159,9 @@ def shi_fft(
     Automatically select CPU or GPU FFT depending on CuPy availability.
     """
     if _USE_CUDA:
-        return shi_fft_gpu(image, projected_grid, logspect)
+        return _shi_fft_gpu(image, projected_grid, logspect)
     else:
-        return shi_fft_cpu(image, projected_grid, logspect)
+        return _shi_fft_cpu(image, projected_grid, logspect)
 
 
 def _zero_fft_region(
@@ -487,7 +487,8 @@ def spatial_harmonics_of_fourier_spectrum(
 
         # Reconstruct harmonic regions using the stored limits.
         if reference_block_grid is None:
-            raise ValueError("Reference block grid (parameter -> reference_block_grid) must be provided when reference is False.")
+            raise ValueError("Reference block grid (parameter -> reference_block_grid)" \
+            "must be provided when reference is False.")
         else:
             for label, limits in reference_block_grid.items():
                 top, bottom, left, right = limits

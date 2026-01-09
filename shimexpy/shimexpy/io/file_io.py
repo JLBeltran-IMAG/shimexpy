@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import cupy as cp
 from pathlib import Path
-import tifffile
+import tifffile as ti
 import json
 import pickle
 
@@ -28,7 +28,7 @@ def load_image(file_path):
     """
     file_path = Path(file_path)
     if file_path.suffix.lower() in ['.tif', '.tiff']:
-        return tifffile.imread(file_path)
+        return ti.imread(file_path)
     else:
         raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
@@ -59,7 +59,7 @@ def save_image(image, file_path):
     image = np.asarray(image).astype(np.float32)
 
     if file_path.suffix.lower() in ['.tif', '.tiff']:
-        tifffile.imwrite(file_path, image, imagej=True)
+        ti.imwrite(file_path, image, imagej=True)
     else:
         raise ValueError(f"Unsupported file format for saving: {file_path.suffix}")
 
@@ -145,59 +145,4 @@ def load_results(file_path):
     file_path = Path(file_path)
     with open(file_path, 'rb') as f:
         return pickle.load(f)
-
-
-def cli_export(
-    data: xr.DataArray,
-    output_path: Path,
-    name: str = "result",
-    fmt: str = "netcdf"
-) -> Path:
-    """
-    Export SHI final result (DataArray format) to disk.
-
-    Parameters
-    ----------
-    data : xr.DataArray
-        Result with dimensions (image, contrast, y, x),
-        as returned by get_all_harmonic_contrasts().
-    output_path : Path
-        Directory where files will be saved.
-    name : str, optional
-        Base name for output files (default: 'result').
-    fmt : str, optional
-        Output format: 'netcdf', 'zarr', 'tiff' or 'tif'.
-
-    Notes
-    -----
-    - Moves data to CPU if on GPU (CuPy backend).
-    - For TIFF export:
-        * Each contrast is saved as a separate .tif file.
-        * Each file contains the full image stack (axis 'image').
-    """
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # Ensure data is on CPU
-    data = move_to_cpu(data)
-    fmt = fmt.lower()
-    file_path = output_path / f"{name}.{fmt}"
-
-    # ---------- EXPORT ----------
-    if fmt in ("netcdf", "nc"):
-        # Export as single NetCDF file
-        data.to_netcdf(file_path)
-
-    elif fmt in ("zarr",):
-        data.to_zarr(output_path / f"{name}.zarr", mode="w")
-
-    elif fmt in ("tiff", "tif"):
-        # Each contrast label → one TIFF stack (image, y, x)
-        for label in data.contrast.values:
-            img = data.sel(contrast=label)
-            save_image(img, output_path / f"{label}.tif")
-
-    else:
-        raise ValueError(f"Unsupported format: {fmt}")
-
-    return output_path
 

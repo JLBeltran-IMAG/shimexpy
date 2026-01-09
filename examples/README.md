@@ -12,16 +12,20 @@ A basic example showing how to load reference and sample images, compute contras
 ./basic_analysis.py
 ```
 
-### batch_processing.py
-A batch processing example demonstrating how to process multiple images in parallel.
+### workflow_example.py
+A jupyter notebook example showing all available functions in the package.
 
-```bash
-./batch_processing.py
-```
 
-## Configuration
+### example_gpu/basic.py
+Ejemplo basico de como hahahaha
 
-Each script can be adapted by modifying the variables at the beginning of the file or the function arguments to suit your specific data and needs.
+### example_gpu/benchmark.py
+Ejemplo basico de como hahahaha
+
+### example_gpu folder
+Ejemplo basico de como hahahaha
+
+
 
 ## Requirements
 

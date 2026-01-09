@@ -238,50 +238,20 @@ class SHIProcessor:
             logger.error(f"Invalid corrected path: {corrected_path}")
             return
 
+        if not reference_path.exists() or not reference_path.is_dir():
+            logger.error(f"Invalid reference path: {reference_path}")
+            return
+
         # --- Create directory for corrected flat ---
         path_to_corrected_flat = reference_path / corrected_path.name
-        path_to_corrected_flat.mkdir(parents=True, exist_ok=True)
-
-        # --- Create subfolders for results ---
-        path_to_flat, _ = directories.create_result_subfolders(
-            file_dir=str(path_to_corrected_flat),
-            result_folder=result_path.name,
-            sample_folder="flat",
-        )
-
-        reference_data = []
-        for refs in path_to_flat:
-            logger.info(f"Processing flat image: {refs}")
-            reference_images = load_image(refs)
-
-            reference_data.append(
-                get_harmonics(
-                    reference_images,
-                    projected_grid=self.mask_period,
-                    unwrap=self.unwrap_method
-                )
-            )
 
         execute.execute_SHI(
             path_to_images=corrected_path,
+            path_to_reference=path_to_corrected_flat,
             path_to_result=result_path,
-            reference_data=reference_data[0],
+            projected_grid=self.mask_period,
             unwrap=self.unwrap_method
         )
-
-        # # --- Apply flat-field corrections ---
-        # result_corrections = directories.create_corrections_folder(result_path)
-
-        # # --- Handle 2D or 3D post-processing ---
-        # if mode == "2d" and average:
-        #     self._handle_2d_averaging(result_corrections)
-        # elif mode == "3d":
-        #     self._handle_3d_organization(result_corrections)
-
-        # # --- Optional export ---
-        # if export:
-        #     logger.info(f"Exporting results to {result_path}")
-        #     directories.export_results(result_path)
 
 
     def _get_angle_correction(
