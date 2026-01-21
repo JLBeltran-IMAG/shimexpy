@@ -28,3 +28,9 @@ include = ["shimexpy_gui*"]
 
 [project.scripts]
 shimexpy = "shimexpy_gui.app:run_gui"
+
+[tool.setuptools.package-data]
+shimexpy_gui = ["assets/*.qss"]
+
+[tool.setuptools]
+include-package-data = true
