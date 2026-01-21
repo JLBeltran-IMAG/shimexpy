@@ -48,6 +48,23 @@ CONTRASTS = {
     ]
 }
 
+CONTRASTS_CLI = {
+    "horizontal": [
+        "harmonic_horizontal_positive",
+        "harmonic_horizontal_negative"
+    ],
+    "vertical": [
+        "harmonic_vertical_positive",
+        "harmonic_vertical_negative"
+    ],
+    "bidirectional": [
+        "harmonic_horizontal_positive",
+        "harmonic_horizontal_negative",
+        "harmonic_vertical_positive",
+        "harmonic_vertical_negative"
+    ]
+}
+
 
 # -------------------- contrast retrieval
 def _compute_phase_map(
@@ -532,7 +549,7 @@ def get_all_contrasts(sample_img, reference_img, projected_grid, unwrap = None):
         diff_phase_contrast
     ) = compute(absorption, scattering, diff_phase)
 
-    return absorption_contrast, scattering_contrast, diff_phase_contrast
+    return abs(absorption_contrast), abs(scattering_contrast), diff_phase_contrast
 
 
 def get_all_harmonic_contrasts(
@@ -594,7 +611,7 @@ def get_all_harmonic_contrasts(
     contrast_list.append(delta_abs)
     contrast_label.append("absorption")
 
-    for direction, harmonics in CONTRASTS.items():
+    for direction, harmonics in CONTRASTS_CLI.items():
         # Select harmonics lazily (xarray handles Dask indexing)
         scat_sel = delta_scat.sel(harmonic=harmonics)
         phase_sel = delta_phase.sel(harmonic=harmonics)
