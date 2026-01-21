@@ -1,5 +1,10 @@
 import xarray as xr
-import cupy as cp
+
+try:
+    import cupy as cp
+    _USE_CUDA = cp.is_available()
+except Exception:
+    _USE_CUDA = False
 
 
 def apply_harmonic_chunking(
@@ -25,4 +30,3 @@ def apply_harmonic_chunking(
         chunks = {"harmonic": 1, "ky": -1, "kx": -1}
 
     return dataset_or_array.chunk(chunks)
-
