@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shimexpy"
 version = "0.1.0"
-description = "Shimexpy installer (monorepo)"
+description = "Spatial Harmonic Imaging and mesh-based X-ray multicontrast imaging in Python"
+readme = { file = "DESCRIPTION.md", content-type = "text/markdown" }
 requires-python = ">=3.7"
 
 dependencies = []
@@ -13,15 +14,15 @@ dependencies = []
 [project.optional-dependencies]
 core = ["shimexpy-core>=0.1.0"]
 #gpu  = ["shimexpy-gpu>=0.1.0"]
-gui  = ["shimexpy-gui>=0.1.0"]
-cli  = ["shimexpy-cli>=0.1.0"]
+gui  = ["shimexpy_gui>=0.1.0"]
+cli  = ["shimexpy_cli>=0.1.0"]
 #tools = ["shimexpy-tools>=0.1.0"]
 
 all = [
   "shimexpy-core>=0.1.0",
 #  "shimexpy-gpu>=0.1.0",
-  "shimexpy-gui>=0.1.0",
-  "shimexpy-cli>=0.1.0",
+  "shimexpy_gui>=0.1.0",
+  "shimexpy_cli>=0.1.0",
 #  "shimexpy-tools>=0.1.0",
 ]
 

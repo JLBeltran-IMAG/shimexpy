@@ -1,109 +1,130 @@
-# Shimexpy: A python package for Spatial Harmonics Imaging and mesh-based X-ray Imaging
+# Shimexpy: A Python package for Spatial Harmonic Imaging and mesh-based X-ray imaging
 
-ShimExPy is a Python package for spatial harmonics X-ray imaging analysis. It provides tools for performing spatial harmonics analysis on X-ray images, extracting absorption, scattering, and phase contrast.
+Shimexpy is an open-source Python package for **Spatial Harmonic Imaging (SHI)**, also known as **mesh-based X-ray multicontrast imaging**. It provides a reproducible and cross-platform computational pipeline for Fourier-domain harmonic extraction and the reconstruction of attenuation, differential phase, and scattering contrasts from single-shot X-ray measurements.
+
+---
+
+## Requirements
+
+- Python ≥ 3.7
+- CUDA (optional, for GPU acceleration via CuPy)
+
+---
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.7+
-- CUDA (for GPU acceleration) - optional, but recomandable
-
-### Basic Installation
+### Install full ecosystem (recommended)
 
 ```bash
-pip install shimexpy
+pip install shimexpy[all]
 ```
 
-### Development Installation
+### Install selected components
 
 ```bash
-git clone https://github.com/yourusername/shimexpy.git
-cd shimexpy
-pip install -e ".[dev]"
+pip install shimexpy[core]
+pip install shimexpy[gui]
+pip install shimexpy[cli]
 ```
 
-El proyecto utiliza ahora `pyproject.toml` en lugar de `setup.py` para configuración y empaquetado, siguiendo los estándares modernos de Python.
-
-### GUI Installation
+### Install components individually
 
 ```bash
-pip install "shimexpy[gui]"
+pip install shimexpy-core
+pip install shimexpy_gui
+pip install shimexpy_cli
 ```
+
+### GPU support (optional)
+
+Select the CUDA version explicitly:
+
+```bash
+pip install shimexpy-core[cuda12x]
+pip install shimexpy-core[cuda11x]
+```
+
+---
 
 ## Usage
 
-### Basic Example
+### Python API (core)
 
 ```python
-from tifffile import imread
-import matplotlib.pyplot as plt
-from shimexpy import get_harmonics, get_contrast
+from shimexpy import load_image, ffc, get_all_contrasts
 
-# Load images
-reference_img = imread("reference.tif")
-sample_img = imread("sample.tif")
+reference = load_image("reference.tif")
+sample = load_image("sample.tif")
+bright = load_image("bright.tif")
+dark = load_image("dark.tif")
 
-# Process reference image
-ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
-    reference_img, projected_grid=5
+reference_ffc = ffc(reference, dark, bright)
+sample_ffc = ffc(sample, dark, bright)
+
+absorption, scattering, dpc = get_all_contrasts(
+    sample_ffc, reference_ffc, projected_grid=5
 )
-
-# Compute contrast
-contrast = get_contrast(
-    sample_img, ref_diff_phase, ref_block_grid, "horizontal_phasemap"
-)
-
-# Display result
-plt.imshow(contrast, cmap='gray')
-plt.colorbar()
-plt.title('Horizontal Phase Contrast')
-plt.show()
 ```
 
-### Running the GUI
+### Graphical user interface (GUI)
 
 ```bash
-# If installed with the GUI option
 shimexpy
 ```
 
-## Project Structure
+The GUI provides interactive access to the full SHI workflow, including image loading,
+Fourier visualization, harmonic extraction, ROI selection, and contrast reconstruction.
+
+### Command-line interface (CLI)
+
+```bash
+shi
+```
+
+The CLI enables scripted and batch processing of SHI datasets.
+
+---
+
+## Development installation
+
+```bash
+git clone https://github.com/JLBeltran-IMAG/shimexpy.git
+cd shimexpy
+pip install -e .
+```
+
+This project uses `pyproject.toml` (PEP 517/518). No `setup.py` is required.
+
+---
+
+## Repository layout
 
 ```
 shimexpy/
-├── core/
-│   ├── spatial_harmonics.py  - Core FFT and spatial harmonics functions
-│   ├── unwrapping.py        - Phase unwrapping algorithms
-│   └── contrast.py          - Contrast computation functions
-├── io/
-│   └── file_io.py           - File input/output utilities
-├── utils/
-│   └── crop.py              - Image cropping utilities
-├── gui/
-│   ├── image_widget.py     - Widget for image display and ROI selection
-│   ├── image_processor.py  - Processing logic controller
-│   ├── shimexpy_gui.py     - Main refactored GUI interface
-│   └── app.py             - Application entry point
-└── visualization/
-    └── plot.py              - Plotting utilities
+├── shimexpy/          # Core SHI algorithms and processing pipeline
+├── shimexpy_gui/      # Graphical user interface (PySide6)
+├── shimexpy_cli/      # Command-line interface
+├── shimexpy_gpu/      # Optional GPU backend utilities
+├── pyproject.toml     # Installer / meta-package
+└── README.md
 ```
+
+Each submodule is versioned and distributed independently via PyPI.
+
+---
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+Apache License 2.0
+
+---
 
 ## Citation
 
-If you use ShimExPy in your research, please cite:
-
-```
-@software{shimexpy,
-  author       = {Jorge Luis Beltran Diaz},
-  title        = {ShiMeXpy: Spatial Harmonics Imaging for X-ray Physics},
-  year         = {2023},
-  publisher    = {GitHub},
-  journal      = {GitHub repository},
-  howpublished = {\url{https://github.com/yourusername/shimexpy}}
+```bibtex
+@article{BeltranDiaz_Shimexpy,
+  title   = {Shimexpy: A Python package for Spatial Harmonic Imaging},
+  author  = {Beltran Diaz, Jorge Luis and Kunka, Danays},
+  year    = {2026}
 }
 ```
