@@ -8,7 +8,6 @@ ShimExPy is a Python package for spatial harmonics X-ray imaging analysis. It pr
 
 - Python 3.7+
 - CUDA (for GPU acceleration) - optional, but recomandable
-- 
 
 ### Basic Installation
 

@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "shimexpy>=0.1.0"
+    "shimexpy-core>=0.1.0"
 ]
 
 [tool.setuptools.packages.find]

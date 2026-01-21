@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shimexpy"
+version = "0.1.0"
+description = "Shimexpy installer (monorepo)"
+requires-python = ">=3.7"
+
+dependencies = []
+
+[project.optional-dependencies]
+core = ["shimexpy-core>=0.1.0"]
+#gpu  = ["shimexpy-gpu>=0.1.0"]
+gui  = ["shimexpy-gui>=0.1.0"]
+cli  = ["shimexpy-cli>=0.1.0"]
+#tools = ["shimexpy-tools>=0.1.0"]
+
+all = [
+  "shimexpy-core>=0.1.0",
+#  "shimexpy-gpu>=0.1.0",
+  "shimexpy-gui>=0.1.0",
+  "shimexpy-cli>=0.1.0",
+#  "shimexpy-tools>=0.1.0",
+]
+
+[tool.setuptools]
+packages = []
