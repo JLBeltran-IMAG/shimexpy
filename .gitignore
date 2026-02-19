@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 *.egg-info/
+examples/results/
+examples/ffc_analysis/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

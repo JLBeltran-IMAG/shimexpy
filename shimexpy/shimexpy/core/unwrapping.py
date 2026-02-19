@@ -5,6 +5,7 @@ Phase unwrapping algorithms.
 import numpy as np
 from numpy.fft import fft2, ifft2, fftfreq
 from skimage.restoration import unwrap_phase
+import snaphu
 
 
 # -------------------------------------------------
@@ -173,3 +174,88 @@ def ls_unwrap(block: np.ndarray) -> np.ndarray:
 # # -------------------------------------------------
 # # New implementations
 # # -------------------------------------------------
+
+def snaphu_unwrap(
+    block: np.ndarray,
+    reference: np.ndarray | None = None,
+    eps: float = 1e-12,
+    cost: str = "smooth",
+    init: str = "mcf",
+    corr_percentile: float = 95.0,
+) -> np.ndarray:
+    """
+    Phase unwrapping using SNAPHU, adapted for Spatial Harmonic Imaging (SHI).
+
+    Parameters
+    ----------
+    block : np.ndarray
+        Complex-valued array containing the SHI ratio or complex phase field.
+        Accepted shapes:
+          - (M, N)
+          - (1, M, N)
+    reference : np.ndarray, optional
+        Reference complex field (e.g. main harmonic). If provided, it is used
+        to build a more stable reliability (coherence) map.
+    eps : float, optional
+        Small constant to avoid division by zero.
+    cost : str, optional
+        SNAPHU cost mode. Recommended: "smooth" for SHI small-phase regime.
+    init : str, optional
+        Initialization method. Recommended: "mcf".
+    corr_percentile : float, optional
+        Percentile used to normalize the coherence map.
+
+    Returns
+    -------
+    np.ndarray
+        Unwrapped phase with shape (1, M, N), in radians.
+
+    Notes
+    -----
+    - This function unwraps ONLY regions with sufficient phase reliability.
+    - Low-amplitude regions are automatically down-weighted by SNAPHU.
+    - Designed for small-phase SHI (not classical interferometry).
+    """
+
+    # -------------------------------
+    # Normalize input shape
+    # -------------------------------
+    z = block[0] if block.ndim == 3 else block
+    z = np.asarray(z)
+
+    # -------------------------------
+    # Interferogram (complex field)
+    # -------------------------------
+    igram = z.astype(np.complex64)
+
+    # -------------------------------
+    # Build coherence / reliability map
+    # -------------------------------
+    if reference is not None:
+        ref = reference[0] if reference.ndim == 3 else reference
+        corr = np.abs(ref)
+    else:
+        corr = np.abs(igram)
+
+    # Normalize and clip coherence
+    norm = np.percentile(corr, corr_percentile)
+    corr = corr / (norm + eps)
+    corr = np.clip(corr, 0.0, 1.0).astype(np.float32)
+
+    # -------------------------------
+    # SNAPHU unwrap
+    # -------------------------------
+    unw, conncomp = snaphu.unwrap(
+        igram,
+        corr,
+        nlooks=1.0,
+        cost=cost,
+        init=init,
+    )
+
+    # -------------------------------
+    # Return with consistent shape
+    # -------------------------------
+    return unw[np.newaxis, ...]
+
+

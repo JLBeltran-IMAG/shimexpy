@@ -117,6 +117,17 @@ def _compute_phase_map(
             dask="parallelized",
             output_dtypes=[ratio.dtype]
         )
+    
+    elif unwrap == "snaphu":
+        unwrapped_phase_map = xr.apply_ufunc(
+            uphase.snaphu_unwrap,
+            ratio,
+            main_harmonic,
+            input_core_dims=[["y", "x"], ["y", "x"]],
+            output_core_dims=[["y", "x"]],
+            dask="parallelized",
+            output_dtypes=[np.float32],
+        )
 
     else:
         raise ValueError("Unknown phase unwrapping algorithm")
@@ -201,6 +212,7 @@ def contrast_retrieval(
         harmonics,
         input_core_dims = [["ky", "kx"]],
         output_core_dims = [["y", "x"]],
+        kwargs={"norm": "ortho"},
         dask = "parallelized",
         output_dtypes = [harmonics.dtype],
         dask_gufunc_kwargs={
@@ -230,7 +242,7 @@ def contrast_retrieval(
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")
 
 
-# --------------- Dark-field estimation
+# --------------- Dark-field geometrical and statistical weights
 def _harmonic_direction_weights(
     block_grid: dict, labels: list, direction: str
 ) -> xr.DataArray:
@@ -295,6 +307,45 @@ def _harmonic_direction_weights(
     )
 
     return weights
+
+
+def _harmonic_statistical_weights(
+    df_harmonics: xr.DataArray,
+    harmonics: list,
+    eps: float = 1e-12,
+) -> xr.DataArray:
+    """
+    Compute statistical weights for harmonic dark-field images based on
+    per-harmonic noise variance.
+
+    Parameters
+    ----------
+    df_harmonics : xr.DataArray
+        Dark-field residuals with dims ("harmonic", "y", "x").
+    harmonics : list
+        Harmonic labels to include.
+    robust : bool
+        If True, use MAD-based variance estimation.
+    eps : float
+        Regularization constant.
+
+    Returns
+    -------
+    xr.DataArray
+        Statistical weights proportional to 1 / sigma_h^2.
+    """
+    w = []
+
+    for h in harmonics:
+        img = df_harmonics.sel(harmonic=h)
+        sigma = img.std()
+        w.append(1.0 / (sigma**2 + eps))
+
+    return xr.DataArray(
+        np.asarray(w, dtype=np.float32),
+        dims=["harmonic"],
+        coords={"harmonic": harmonics},
+    )
 
 
 # -------------------- main functions
@@ -397,11 +448,19 @@ def get_contrast(
         sample_contrast = contrast_retrieval(sample_harmonics_chunked, contrasts, unwrap=unwrap)
 
         harmonics = CONTRASTS[direction]
-        weights = _harmonic_direction_weights(ref_block_grid, harmonics, direction)
         result = sample_contrast.sel(harmonic=harmonics) - reference.sel(harmonic=harmonics)
 
+        # geometric weights
+        weights_geom = _harmonic_direction_weights(ref_block_grid, harmonics, direction)
+
+        # statistical weights
+        weights_stat = _harmonic_statistical_weights(result, harmonics)
+
+        # combined weights
+        weights = weights_geom * weights_stat
+
         if contrasts == "scattering":
-            output = abs(result * weights).sum("harmonic")
+            output = abs(result * weights).sum("harmonic") / weights.sum("harmonic")
         else:
             positive, negative = harmonics[0], harmonics[1]
             output = result.sel(harmonic=positive) - result.sel(harmonic=negative)
@@ -475,7 +534,7 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None):
     diff_phase = (sample_diff_phase.sel(harmonic=harmonics) - 
                   reference[2].sel(harmonic=harmonics))
 
-    scattering = abs(scattering * weights).sum("harmonic")
+    scattering = abs(scattering * weights).sum("harmonic") / weights.sum("harmonic")
     diff_phase = (
         diff_phase.sel(harmonic="harmonic_horizontal_positive")
         - diff_phase.sel(harmonic="harmonic_horizontal_negative")

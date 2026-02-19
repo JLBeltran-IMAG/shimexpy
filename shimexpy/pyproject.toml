@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shimexpy-core"
-version = "0.1.0"
+version = "0.1.1"
 description = "An open-source Python package for spatial harmonics X-ray imaging."
 readme = "readme.md"
 authors = [{name = "Jorge Luis Beltran Diaz"}]
