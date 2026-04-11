@@ -1,3 +1,5 @@
+![Shimexpy logo](logo.png)
+
 # Shimexpy: A Python package for Spatial Harmonic Imaging and mesh-based X-ray imaging
 
 Shimexpy is an open-source Python package for **Spatial Harmonic Imaging (SHI)**, also known as **mesh-based X-ray multicontrast imaging**. It provides a reproducible and cross-platform computational pipeline for Fourier-domain harmonic extraction and the reconstruction of attenuation, differential phase, and scattering contrasts from single-shot X-ray measurements.
