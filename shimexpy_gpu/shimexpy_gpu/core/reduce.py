@@ -1,4 +1,7 @@
-"""This module implements functions to reduce SHI contrast outputs"""
+# reduce.py
+# GPU-accelerated reduction of contrasts for ShimexPy
+
+
 
 def reduce_outputs(contrasts, reduce_maps, ref_reduced=None):
     out = {}

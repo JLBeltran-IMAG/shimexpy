@@ -1,6 +1,10 @@
+# api.py
+# GPU-accelerated API for ShimexPy
+
+
 import cupy as cp
 from dataclasses import dataclass
-from .fft import shi_fft_gpu
+from .fft import _fft
 from .bands import find_reference_bands, bands_to_array
 from .stack import extract_stack, extract_stack_unshifted
 from .contrast import compute_contrasts_batch
@@ -26,7 +30,7 @@ def prepare_reference(
     compute_phase: bool = False
 ):
     # FFT (shifted for band finding)
-    fft, kx, ky = shi_fft_gpu(reference_img, projected_grid, shift=True)
+    fft, kx, ky = _fft(reference_img, projected_grid, shift=True)
 
     # Find harmonic bands (CPU-like logic, once)
     bands = find_reference_bands(fft, kx, ky, limit_band)
@@ -102,7 +106,7 @@ def prepare_reference(
 
 def process_frame(sample_img, ref: ReferenceGPU, compute_phase: bool = False):
     # FFT without shift (faster)
-    fft, _, _ = shi_fft_gpu(sample_img, projected_grid=None, shift=False)
+    fft, _, _ = _fft(sample_img, projected_grid=None, shift=False)
 
     # Extract using unshifted indices
     stack = extract_stack_unshifted(fft, ref.y_indices, ref.x_indices)
@@ -119,3 +123,22 @@ def process_frame(sample_img, ref: ReferenceGPU, compute_phase: bool = False):
 
 
 
+class SpSpectSpace:
+    def __init__():
+        pass
+
+
+
+
+class ShimexPyGPU:
+    def __init__(self, reference_img, projected_grid=None, limit_band=0.5, store_reference_contrasts=True, compute_phase=False):
+        self.ref = prepare_reference(
+            reference_img,
+            projected_grid,
+            limit_band,
+            store_reference_contrasts,
+            compute_phase
+        )
+
+    def process(self, sample_img, compute_phase=False):
+        return process_frame(sample_img, self.ref, compute_phase)

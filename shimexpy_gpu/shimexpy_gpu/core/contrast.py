@@ -1,3 +1,7 @@
+# contrast.py
+# GPU-accelerated contrast computation for ShimexPy
+
+
 import cupy as cp
 import cupyx.scipy.fft as cufft
 

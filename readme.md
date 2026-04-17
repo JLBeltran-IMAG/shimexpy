@@ -87,6 +87,15 @@ The CLI enables scripted and batch processing of SHI datasets.
 
 ---
 
+### ⚠️ Important Usage Note: Hardware Deconvolution
+**Shimexpy** implements the mathematical formalism of Spatial Harmonic Imaging based on a locally separable (multiplicative) model. It does **not** perform hardware deconvolution. 
+
+If your experimental setup is subject to significant source blur (extended sources, high geometric penumbra) or severe detector cross-talk, the physical point spread function (PSF) introduces a spatial convolution that cannot be mathematically inverted by harmonic division.
+
+**Recommendation:** In such scenarios, users must pre-process their raw images with an independent deblurring or deconvolution module to mitigate the hardware PSF *before* feeding the data into the Shimexpy pipeline.
+
+---
+
 ## Development installation
 
 ```bash

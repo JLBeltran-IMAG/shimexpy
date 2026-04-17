@@ -1,3 +1,8 @@
+# stack.py
+# GPU-accelerated stack extraction for ShimexPy
+
+
+
 import cupy as cp
 
 

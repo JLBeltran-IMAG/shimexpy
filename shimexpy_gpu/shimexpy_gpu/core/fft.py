@@ -1,3 +1,7 @@
+# fft.py
+# GPU-accelerated FFT for ShimexPy
+
+
 import cupy as cp
 import cupyx.scipy.fft as cufft
 from functools import lru_cache
@@ -11,7 +15,7 @@ def _get_freqs(h, w, projected_grid):
     return kx, ky
 
 
-def shi_fft_gpu(image, projected_grid=None, shift=True):
+def _fft(image, projected_grid=None, shift=True):
     if not isinstance(image, cp.ndarray):
         img = cp.asarray(image, dtype=cp.float32)
     else:
