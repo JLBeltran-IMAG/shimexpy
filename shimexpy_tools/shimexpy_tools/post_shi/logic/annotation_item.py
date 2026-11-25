@@ -14,7 +14,7 @@ from .internal_point import InternalPoint
 
 if TYPE_CHECKING:
     # solo para hints; no ejecuta el import en runtime
-    from custom_widgets.image_container import ImageContainer2D
+    from shimexpy_tools.shimexpy_tools.post_shi.custom_widgets.image_container import ImageContainer2D
 
 
 # Factory para (re)crear la figura gráfica.

@@ -25,10 +25,10 @@ def ffc(
     ----------
     image : np.ndarray
         The raw input image (2D).
-    dark_path : str or Path
-        Directory containing dark-field TIFF images.
-    bright_path : str or Path
-        Directory containing bright-field TIFF images.
+    dark : np.ndarray
+        Dark-field image or stack of images. Stacks are averaged along axis 0.
+    bright : np.ndarray
+        Bright-field image or stack of images. Stacks are averaged along axis 0.
     crop : tuple or None
         (y0, y1, x0, x1) crop region. Ignored if allow_crop=False.
     angle : float
@@ -379,13 +379,13 @@ class FFCQualityAssessment:
 
         fig, ax = plt.subplots(figsize=(6, 4))
 
-        ax.hist(raw, bins=bins, range=(vmin, vmax), alpha=0.5, label="RAW", density=density)
-        ax.hist(ffc, bins=bins, range=(vmin, vmax), alpha=0.5, label="FFC", density=density)
+        ax.hist(raw, bins=bins, range=(vmin, vmax), alpha=0.5, label="RAW", density=density) # type: ignore
+        ax.hist(ffc, bins=bins, range=(vmin, vmax), alpha=0.5, label="FFC", density=density) # type: ignore
 
         if logy:
             ax.set_yscale("log")
 
-        ax.set_xlim(vmin, vmax)
+        ax.set_xlim(vmin, vmax) # type: ignore
         ax.set_xlabel("Intensity")
         ax.set_ylabel("Density" if density else "Counts")
         ax.legend()

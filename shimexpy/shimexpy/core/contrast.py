@@ -1,20 +1,24 @@
 """
-Contrast computation module.
+This module provides functions for retrieving and computing X-ray multicontrast images using Spatial Harmonic Imaging (SHI). It extracts harmonic information from the Fourier spectrum to reconstruct absorption, dark-field scattering, and differential phase contrast images.
 
-This module contains functions for computing various types of contrast.
+The module supports individual and combined contrast retrieval, directional analysis of scattering and phase signals, harmonic-specific contrast computation, and multiple phase-unwrapping algorithms.
+
+Note:
+-----
+This module is still under development, so the improvements are ongoing.
 """
 
 import numpy as np
 import xarray as xr
 from dask.base import compute
 
-from shimexpy.core import unwrapping as uphase
-from shimexpy.core.spatial_harmonics import (
+from ..core import unwrapping as uphase
+from .fourier_harmonics import (
     shi_fft,
-    spatial_harmonics_of_fourier_spectrum
+    get_fourier_harmonics
 )
 
-from shimexpy.utils.parallelization import apply_harmonic_chunking
+from ..utils.parallelization import apply_harmonic_chunking
 
 
 # Contrast retrieval specifications
@@ -174,7 +178,7 @@ def contrast_retrieval(
     harmonics: xr.DataArray,
     type_of_contrast: str,
     unwrap: str | None = None,
-    eps: float = 1e-12
+    eps: np.floating = np.finfo(np.float64).eps
 ) -> xr.DataArray:
     """
     Retrieves individual contrast members from a harmonic component.
@@ -182,10 +186,12 @@ def contrast_retrieval(
     This function processes harmonic components to retrieve different types of contrast
     (absorption, scattering, or phase map) from the inverse Fourier transform of the input.
 
+    The contrast retrieval is performed by computing the inverse Fourier transform of the harmonics and then applying the appropriate mathematical operations according to the specified contrast type. At this stage, the corresponding normalization is applied without reference-image normalization, so the output represents the contrast relative to the main harmonic.
+
     Parameters
     ----------
-    harmonic : ndarray
-        The harmonic component in Fourier space to be processed.
+    harmonics : xr.DataArray
+        The harmonic component in Fourier space to be processed. This parameter is obtained directly from the `get_fourier_harmonics` function.
     type_of_contrast : str
         The type of contrast to retrieve. Must be one of:
         - 'absorption': Computes absorption contrast
@@ -193,20 +199,22 @@ def contrast_retrieval(
         - 'phasemap': Computes phase map contrast
     unwrap : str, optional
         The unwrapping algorithm to use when type_of_contrast is 'phasemap'.
+        > **Note:** This parameter supports several phase-unwrapping algorithms implemented in the `unwrapping` submodule. These algorithms can also be used independently, as they are designed to work with general NumPy `ndarray` structures. In this function, phase unwrapping is integrated into `contrast_retrieval` as part of the contrast reconstruction process.
+
     eps : float, optional
-        Small constant to avoid division by zero. Default is 1e-12.
+        Small constant to avoid division by zero. Default is 'np.finfo(np.float64).eps'.
 
     Returns
     -------
     ndarray
-        The retrieved contrast map according to the specified type_of_contrast.
+        The retrieved contrast map normalized with respect to the main harmonic (zero-order component), without reference-image normalization.
 
     Raises
     ------
     ValueError
         If type_of_contrast is not one of 'absorption', 'scattering', or 'phasemap'.
     """
-    # Compute the inverse Fourier transform of harmonics.
+    # Compute the inverse Fourier transform of harmonics
     ifft_harmonic = xr.apply_ufunc(
         np.fft.ifft2,
         harmonics,
@@ -309,132 +317,136 @@ def _harmonic_direction_weights(
     return weights
 
 
-def _harmonic_statistical_weights(
-    df_harmonics: xr.DataArray,
-    harmonics: list,
-    eps: float = 1e-12,
-) -> xr.DataArray:
-    """
-    Compute statistical weights for harmonic dark-field images based on
-    per-harmonic noise variance.
-
-    Parameters
-    ----------
-    df_harmonics : xr.DataArray
-        Dark-field residuals with dims ("harmonic", "y", "x").
-    harmonics : list
-        Harmonic labels to include.
-    robust : bool
-        If True, use MAD-based variance estimation.
-    eps : float
-        Regularization constant.
-
-    Returns
-    -------
-    xr.DataArray
-        Statistical weights proportional to 1 / sigma_h^2.
-    """
-    w = []
-
-    for h in harmonics:
-        img = df_harmonics.sel(harmonic=h)
-        sigma = img.std()
-        w.append(1.0 / (sigma**2 + eps))
-
-    return xr.DataArray(
-        np.asarray(w, dtype=np.float32),
-        dims=["harmonic"],
-        coords={"harmonic": harmonics},
-    )
-
-
 # -------------------- main functions
-def get_harmonics(image, projected_grid, block_grid=None, unwrap = None):
+def get_spatial_harmonics(
+    image: np.ndarray,
+    projected_grid: float,
+    block_grid: dict | None = None,
+    unwrap: str | None = None
+) -> tuple:
     """
-    Set reference image for spatial harmonics analysis.
-    This function performs spatial harmonics analysis on a given image
-    and returns the absorption, scattering, and differential phase maps,
-    along with the block grid for harmonics.
+    Retrieve harmonic-based contrast maps from a Spatial Harmonic Imaging (SHI) image.
+
+    This function extracts spatial harmonics from the Fourier spectrum and applies contrast-specific operations to retrieve absorption, scattering, and differential phase maps.
+
+    The resulting contrasts are computed from a single image, using the main (zero-order) harmonic as the basis for contrast retrieval, without normalization against an external reference image.
 
     Parameters
     ----------
     image : np.ndarray
         The input image to analyze.
     projected_grid : float
-        The projected grid period (in real-space units) used to compute
-        the spatial frequency axes.
+        The projected grid period used to compute the spatial frequency axes. This parameter can be determined in two ways:
+
+        1. By zooming into the image and counting the number of pixels within one projected grid period. The resulting integer value is internally converted to a float.
+        2. By calculating the projected grid period from the geometry of the experimental setup (see Tutorials for more information).
     block_grid : dict, optional
-        A dictionary containing the limits for each harmonic in the reference image.
+        A dictionary containing the boundaries of the windows surrounding each spatial harmonic in the Fourier spectrum, used to isolate the corresponding harmonic components.
     unwrap : str, optional
-        The unwrapping algorithm to use for phase map retrieval. Default is None.
+        The unwrapping algorithm to use when type_of_contrast is 'phasemap'.
+        > **Note:** This parameter supports several phase-unwrapping algorithms implemented in the `unwrapping` submodule. These algorithms can also be used independently, as they are designed to work with general NumPy `ndarray` structures. In this function, phase unwrapping is integrated into `contrast_retrieval` as part of the contrast reconstruction process.
 
     Returns
     -------
-    absorption : xr.DataArray
-        The computed absorption contrast for the input image.
-    scattering : xr.DataArray
-        The computed scattering contrast for the input image.
-    diff_phase : xr.DataArray
-        The computed differential phase map for the input image.
-    ref_block_grid : dict
-        A dictionary containing the limits for each harmonic in the reference image.
-    """
-    # La imagen ya debe venir recortada si es necesario
+    (absorption, scattering, diff_phase, block_grid) : tuple
+        A tuple containing the following elements:
 
+        1. absorption : xr.DataArray
+            Absorption map computed exclusively from the main (zero-order) harmonic, without normalization against other harmonics or an external reference image.
+
+        2. scattering : xr.DataArray
+            Scattering maps computed from the spatial harmonics, normalized with respect to the main harmonic.
+
+        3. diff_phase : xr.DataArray
+            Differential phase maps obtained by applying the corresponding mathematical operations to the spatial harmonics (see Tutorials for more information).
+
+        4. block_grid : dict
+            The Fourier-space window boundaries used to isolate each spatial harmonic.
+    """
     # Perform the Fourier transform and extract harmonics
     result = shi_fft(image, projected_grid)
     kx, ky, fft_img = result.kx, result.ky, result.fft
 
     # Extract spatial harmonics from the Fourier spectrum
     if block_grid:
-        harmonics, _ = spatial_harmonics_of_fourier_spectrum(fft_img, ky, kx, reference=False, reference_block_grid=block_grid)
+        harmonics, _ = get_fourier_harmonics(
+            fft_img, ky, kx, reference=False, reference_block_grid=block_grid
+        )
     else:
-        harmonics, block_grid = spatial_harmonics_of_fourier_spectrum(fft_img, ky, kx, reference=True)
+        harmonics, block_grid = get_fourier_harmonics(
+            fft_img, ky, kx, reference=True
+        )
 
     # Chunk the harmonics for parallel processing
     harmonics_chunked = harmonics.chunk({"harmonic": 1, "ky": -1, "kx": -1})
 
     # Compute the contrasts from the harmonics
-    absolute_absorption = contrast_retrieval(harmonics_chunked, type_of_contrast="absorption")
-    absolute_scattering = contrast_retrieval(harmonics_chunked, type_of_contrast="scattering")
-    absolute_diff_phase = contrast_retrieval(harmonics_chunked, type_of_contrast="phasemap", unwrap=unwrap)
+    absolute_absorption = contrast_retrieval(
+        harmonics_chunked, type_of_contrast="absorption"
+    )
+    absolute_scattering = contrast_retrieval(
+        harmonics_chunked, type_of_contrast="scattering"
+    )
+    absolute_diff_phase = contrast_retrieval(
+        harmonics_chunked, type_of_contrast="phasemap", unwrap=unwrap
+    )
 
     return absolute_absorption, absolute_scattering, absolute_diff_phase, block_grid
 
 
 def get_contrast(
-    sample_img, reference, ref_block_grid, type_of_contrast, unwrap = None
+    sample_img: np.ndarray,
+    reference: xr.DataArray,
+    ref_block_grid: dict,
+    type_of_contrast: str,
+    unwrap: str | None = None
 ):
     """
-    Execute spatial harmonics analysis on a sample image and retrieve
-    the specified contrast.
-    This function performs spatial harmonics analysis on a sample image
-    and computes the contrast with respect to a reference image.
+    Retrieve a specified multicontrast image from a Spatial Harmonic Imaging (SHI) measurement.
+
+    This function performs the corresponding analysis on a sample image, extracts the relevant harmonic components from its Fourier spectrum, and applies contrast-specific operations to reconstruct the requested contrast.
+
+    Unlike `get_harmonics`, this function computes the contrast relative to a reference image previously processed by `get_harmonics`. For directional scattering and differential phase contrast, the corresponding harmonic components are selected and combined according to the specified direction.
 
     Parameters
     ----------
     sample_img : np.ndarray
         The sample image to analyze.
     reference : xr.DataArray
-        The reference image containing the pre-computed contrasts
-        (absorption, scattering, phase map).
+        The precomputed reference contrast corresponding to the selected `type_of_contrast`. For directional contrasts, the reference must contain the corresponding harmonic components.
     ref_block_grid : dict
-        A dictionary containing the limits for each harmonic in the reference image.
+        A dictionary containing the boundaries of the windows surrounding each spatial harmonic in the reference Fourier spectrum. These boundaries are reused to extract the corresponding harmonics from the sample image.
     type_of_contrast : str
-        The type of contrast to retrieve. Must be one of:
-        - 'absorption': Computes absorption contrast
-        - '(direction)_scattering': Computes (direction) scattering contrast
-        - '(direction)_phasemap': Computes (direction) phase map contrast
+        The type of contrast to retrieve. Supported options are:
+
+        1. "absorption":
+            Computes absorption contrast relative to the reference image.
+
+        2. "{direction}_scattering":
+            Computes directional dark-field scattering contrast by combining the corresponding harmonic components using geometric weights.
+
+        3. "{direction}_phasemap":
+            Computes directional differential phase contrast from the corresponding harmonic phase maps.
+
+        For scattering and phase contrast, `{direction}` must be "horizontal", "vertical", or "bidirectional".
+
     unwrap : str, optional
-        The unwrapping algorithm to use for phase map retrieval. Default is None.
-    
+        The phase-unwrapping algorithm to use when retrieving differential phase contrast. Default is None.
+
+        > **Note:** The available phase-unwrapping algorithms are implemented in the `unwrapping` submodule and can also be used independently with NumPy `ndarray` inputs. In this function, phase unwrapping is performed through `contrast_retrieval`.
+
     Returns
     -------
-    xr.DataArray
-        The computed contrast for the sample image, relative to the reference image.
+    contrast : xr.DataArray
+        The reconstructed contrast map for the sample image, computed relative to the corresponding reference contrast. The output is a two-dimensional contrast image obtained after applying the mathematical operations associated with the selected contrast type (see Tutorials for more information).
+
+    Raises
+    ------
+    ValueError
+        If the specified contrast type or direction is not supported.
     """
     sample_result = shi_fft(sample_img)
-    sample_harmonics, _ = spatial_harmonics_of_fourier_spectrum(
+    sample_harmonics, _ = get_fourier_harmonics(
         sample_result.fft, None, None, reference=False, reference_block_grid=ref_block_grid
     )
     sample_harmonics_chunked = sample_harmonics.chunk({"harmonic": 1, "ky": -1, "kx": -1})
@@ -451,13 +463,7 @@ def get_contrast(
         result = sample_contrast.sel(harmonic=harmonics) - reference.sel(harmonic=harmonics)
 
         # geometric weights
-        weights_geom = _harmonic_direction_weights(ref_block_grid, harmonics, direction)
-
-        # statistical weights
-        weights_stat = _harmonic_statistical_weights(result, harmonics)
-
-        # combined weights
-        weights = weights_geom * weights_stat
+        weights = _harmonic_direction_weights(ref_block_grid, harmonics, direction)
 
         if contrasts == "scattering":
             output = abs(result * weights).sum("harmonic") / weights.sum("harmonic")
@@ -502,7 +508,7 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None):
     # Contrast retrieval of sample image
     sample_result = shi_fft(sample_img)
     sample_fft_img = sample_result.fft
-    sample_harmonics, _ = spatial_harmonics_of_fourier_spectrum(
+    sample_harmonics, _ = get_fourier_harmonics(
         sample_fft_img,
         None,
         None,
@@ -525,8 +531,6 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None):
     )
 
     harmonics = CONTRASTS["bidirectional"]
-    weights = _harmonic_direction_weights(ref_block_grid, harmonics, "bidirectional")
-    # result = sample_contrast.sel(harmonic=harmonics) - reference.sel(harmonic=harmonics)
 
     absorption = sample_absorption - reference[0]
     scattering = (sample_scattering.sel(harmonic=harmonics) - 
@@ -534,7 +538,7 @@ def get_contrasts(sample_img, reference, ref_block_grid, unwrap = None):
     diff_phase = (sample_diff_phase.sel(harmonic=harmonics) - 
                   reference[2].sel(harmonic=harmonics))
 
-    scattering = abs(scattering * weights).sum("harmonic") / weights.sum("harmonic")
+    scattering = scattering.sum("harmonic")
     diff_phase = (
         diff_phase.sel(harmonic="harmonic_horizontal_positive")
         - diff_phase.sel(harmonic="harmonic_horizontal_negative")
@@ -586,14 +590,14 @@ def get_all_contrasts(sample_img, reference_img, projected_grid, unwrap = None):
         ref_scattering,
         ref_diff_phase,
         ref_block_grid
-    ) = get_harmonics(reference_img, projected_grid, unwrap=unwrap)
+    ) = get_spatial_harmonics(reference_img, projected_grid, unwrap=unwrap)
 
     (
         sample_absorption,
         sample_scattering,
         sample_diff_phase,
         _
-    ) = get_harmonics(sample_img, projected_grid, ref_block_grid, unwrap=unwrap)
+    ) = get_spatial_harmonics(sample_img, projected_grid, ref_block_grid, unwrap=unwrap)
 
     # ---------
     #  Compute
@@ -608,7 +612,7 @@ def get_all_contrasts(sample_img, reference_img, projected_grid, unwrap = None):
         diff_phase_contrast
     ) = compute(absorption, scattering, diff_phase)
 
-    return abs(absorption_contrast), abs(scattering_contrast), diff_phase_contrast
+    return absorption_contrast, scattering_contrast, diff_phase_contrast
 
 
 def get_all_harmonic_contrasts(
@@ -630,8 +634,6 @@ def get_all_harmonic_contrasts(
         The harmonic block grid from the reference image.
     unwrap : str, optional
         Phase unwrapping algorithm. Default is None.
-    crop : tuple, optional
-        Crop region for the sample image. Default is None.
 
     Returns
     -------
@@ -641,7 +643,7 @@ def get_all_harmonic_contrasts(
     """
     # --- Step 1: FFT and harmonic extraction
     sample_fft_img = shi_fft(sample_img).fft
-    sample_harmonics, _ = spatial_harmonics_of_fourier_spectrum(
+    sample_harmonics, _ = get_fourier_harmonics(
         sample_fft_img,
         None,
         None,

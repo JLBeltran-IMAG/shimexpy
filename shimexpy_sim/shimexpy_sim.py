@@ -597,16 +597,16 @@ if __name__ == "__main__":
     # ------------------------------------------------------------
     # Choose one grating type
     # ------------------------------------------------------------
-    grating = GratingParams(
-        grating_type="inverted_hartmann",
-        pitch_x_m=50e-6,
-        pitch_y_m=50e-6,
-        tau_open=1.0,
-        tau_block=0.02,
-        opening_x_m=18e-6,
-        opening_y_m=18e-6,
-        rotation_deg=0.0,
-    )
+    # grating = GratingParams(
+    #     grating_type="inverted_hartmann",
+    #     pitch_x_m=50e-6,
+    #     pitch_y_m=50e-6,
+    #     tau_open=1.0,
+    #     tau_block=0.02,
+    #     opening_x_m=18e-6,
+    #     opening_y_m=18e-6,
+    #     rotation_deg=0.0,
+    # )
 
     # Examples for other types:
     #

@@ -1,5 +1,7 @@
 """
 Core module for spatial harmonics transformations.
+
+Mejorar la documentacion
 """
 
 # Scientific imports
@@ -361,7 +363,7 @@ def _identifying_harmonic(
         return _identifying_harmonics_x1y1_higher_orders(dx, dy)
 
 
-def spatial_harmonics_of_fourier_spectrum(
+def get_fourier_harmonics(
     fourier_transform: np.ndarray,
     ky: np.ndarray | None,
     kx: np.ndarray | None,
@@ -416,7 +418,7 @@ def spatial_harmonics_of_fourier_spectrum(
 
     Examples
     --------
-    >>> da, labels, grid = spatial_harmonics_of_fourier_spectrum(
+    >>> da, labels, grid = get_fourier_harmonics(
     ...     fourier_transform=my_fft,
     ...     ky=ky_array,
     ...     kx=kx_array,
@@ -505,3 +507,6 @@ def spatial_harmonics_of_fourier_spectrum(
         )
 
         return da, reference_block_grid
+
+
+

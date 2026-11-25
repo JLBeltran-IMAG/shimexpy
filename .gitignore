@@ -49,7 +49,15 @@ htmlcov/
 
 # Documentation
 docs/_build/
+site/
 
 # Local development files
 *.sqlite3
 *.db
+
+# Other folders
+.codex/
+.agents
+.cache/
+.github/
+

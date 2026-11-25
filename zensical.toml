@@ -1,0 +1,73 @@
+[project]
+site_name = "Shimexpy"
+site_url = "https://jlbeltran-imag.github.io/shimexpy/"
+site_description = "Documentation for Shimexpy: spatial harmonic and mesh-based X-ray imaging in Python"
+extra_css = ["stylesheets/extra.css"]
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = "getting-started/getting-started.md" },
+  { "API Reference" = [
+    { "Overview" = "api/api.md" },
+    { "Core Functions" = "api/core.md" },
+    { "Data Structures" = "api/data.md" },
+    { "I/O Functions" = "api/io.md" },
+    { "Utilities" = "api/utils.md" },
+    { "Visualization" = "api/visualization.md" }
+  ] },
+  { "Command-line Interface" = "cli/cli.md" },
+  { "Graphical User Interface" = "gui/gui.md" },
+  { "Tutorials" = [
+    { "Overview" = "tutorials/tutorials.md" },
+    { "Tutorial 1" = "tutorials/tutorial1.md" },
+    { "Tutorial 2" = "tutorials/tutorial2.md" },
+    { "Tutorial 3" = "tutorials/tutorial3.md" },
+    { "Tutorial 4" = "tutorials/tutorial4.md" }
+  ] },
+]
+
+[project.theme]
+variant = "modern"
+font.text = "Inter"
+font.code = "JetBrains Mono"
+features = [
+    "navigation.tabs",
+    "navigation.sections",
+    "navigation.top",
+    "toc.follow",
+    "search.highlight",
+]
+logo = "assets/images/logo_text.svg"
+favicon = "assets/images/logo.svg"
+
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions]
+attr_list = {}
+md_in_html = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+
+# Python API documentation
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["shimexpy"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "numpy"
+docstring_section_style = "list"
+show_source = false
+show_signature_annotations = true
+members_order = "source"
+separate_signature = true

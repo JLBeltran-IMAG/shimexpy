@@ -8,12 +8,12 @@ This package provides tools for spatial harmonics X-ray imaging analysis.
 # Import main functionality
 from shimexpy.core.spatial_harmonics import (
     shi_fft,
-    spatial_harmonics_of_fourier_spectrum
+    get_fourier_harmonics
 )
 
 from shimexpy.core.contrast import (
     contrast_retrieval,
-    get_harmonics,
+    get_spatial_harmonics,
     get_contrast,
     get_contrasts,
     get_all_contrasts,
@@ -42,9 +42,9 @@ from shimexpy.utils.parallelization import apply_harmonic_chunking
 __all__ = [
     # Spatial Harmonics
     "shi_fft",
-    "spatial_harmonics_of_fourier_spectrum",
+    "get_fourier_harmonics",
     "contrast_retrieval",
-    "get_harmonics",
+    "get_spatial_harmonics",
     "get_contrast",
     "get_contrasts",
     "get_all_contrasts",

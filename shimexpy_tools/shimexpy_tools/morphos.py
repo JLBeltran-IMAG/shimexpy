@@ -7,7 +7,7 @@ import sys
 #from pathlib import Path
 
 # Import the main function from morphostructural module
-from shimexpy_tools.post_shi.morphostructural import main
+from .post_shi.morphostructural import main
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -14,7 +14,7 @@
 #     _extracting_harmonic,
 #     _identifying_harmonics_x1y1_higher_orders,
 #     _identifying_harmonic,
-#     spatial_harmonics_of_fourier_spectrum,
+#     get_fourier_harmonics,
 #     _unwrapping_phase_gradient_operator,
 #     _compute_phase_map,
 #     _compute_scattering,
@@ -226,7 +226,7 @@
 #       da_ref, labels_ref, grid_ref, fft, ky, kx
 #     """
 #     kx, ky, fourier_transform = real_fft_data
-#     da_ref, labels_ref, block_grid_ref = spatial_harmonics_of_fourier_spectrum(
+#     da_ref, labels_ref, block_grid_ref = get_fourier_harmonics(
 #         fourier_transform=fourier_transform,
 #         ky=ky,
 #         kx=kx,
@@ -276,7 +276,7 @@
 #     """Test en modo reference=False, reutilizando labels y grid del fixture anterior"""
 #     da_ref, labels_ref, block_grid_ref, kx, ky, fourier_transform = reference_harmonics
 
-#     da_nonref, labels_nonref, block_grid_nonref = spatial_harmonics_of_fourier_spectrum(
+#     da_nonref, labels_nonref, block_grid_nonref = get_fourier_harmonics(
 #         fourier_transform=fourier_transform,
 #         ky=ky,
 #         kx=kx,
@@ -299,7 +299,7 @@
 #     ky = np.linspace(-2, 2, 50)
     
 #     with pytest.raises(ValueError, match="Reference block grid.*must be provided"):
-#         spatial_harmonics_of_fourier_spectrum(
+#         get_fourier_harmonics(
 #             fourier_transform=test_ft,
 #             ky=ky,
 #             kx=kx,

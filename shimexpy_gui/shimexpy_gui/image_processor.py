@@ -8,7 +8,7 @@ using ShimExPy functions for spatial harmonics analysis.
 import numpy as np
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-from shimexpy import get_harmonics, get_contrast, get_all_contrasts
+from shimexpy import get_spatial_harmonics, get_contrast, get_all_contrasts
 from shimexpy import load_image
 
 
@@ -123,7 +123,7 @@ class ShimexController:
             
             # Procesar la imagen de referencia
             try:
-                self.ref_absorption, self.ref_scattering, self.ref_diff_phase, self.ref_block_grid = get_harmonics(
+                self.ref_absorption, self.ref_scattering, self.ref_diff_phase, self.ref_block_grid = get_spatial_harmonics(
                     self.reference_image, grid_value
                 )
             except Exception as e:

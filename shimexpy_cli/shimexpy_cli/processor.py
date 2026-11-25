@@ -5,7 +5,7 @@ import skimage.io as io
 from typing import Optional, List, Union
 from pathlib import Path
 
-from shimexpy import get_harmonics
+from shimexpy import get_spatial_harmonics
 from shimexpy import load_image
 
 from shimexpy_cli.config import config

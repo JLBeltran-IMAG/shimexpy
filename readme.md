@@ -8,7 +8,7 @@ Shimexpy is an open-source Python package for **Spatial Harmonic Imaging (SHI)**
 
 ## Requirements
 
-- Python ≥ 3.7
+- Python 3.12 is recommended for the current source checkout and documentation build.
 - CUDA (optional, for GPU acceleration via CuPy)
 
 ---
@@ -80,7 +80,7 @@ Fourier visualization, harmonic extraction, ROI selection, and contrast reconstr
 ### Command-line interface (CLI)
 
 ```bash
-shi
+shi calculate --help
 ```
 
 The CLI enables scripted and batch processing of SHI datasets.
@@ -101,10 +101,26 @@ If your experimental setup is subject to significant source blur (extended sourc
 ```bash
 git clone https://github.com/JLBeltran-IMAG/shimexpy.git
 cd shimexpy
-pip install -e .
+python -m pip install -e ./shimexpy
 ```
 
-This project uses `pyproject.toml` (PEP 517/518). No `setup.py` is required.
+This installs the core library from the local source. Install `./shimexpy_cli`
+or `./shimexpy_gui` in editable mode as needed. The root `pyproject.toml` defines
+the installer package; the Python implementation is in the `shimexpy/` subproject.
+
+## Build the documentation
+
+Use Python 3.12 and install the documentation dependencies:
+
+```bash
+python -m pip install -r requirements-docs.txt
+zensical serve
+```
+
+Run `zensical build --clean` to generate the static site in `site/`.
+Edit the Markdown sources in `docs/`, the styles in `docs/stylesheets/extra.css`,
+and the site configuration in `zensical.toml`. Generated files in `site/` should
+not be edited or committed.
 
 ---
 
@@ -117,7 +133,7 @@ shimexpy/
 ├── shimexpy_cli/      # Command-line interface
 ├── shimexpy_gpu/      # Optional GPU backend utilities
 ├── pyproject.toml     # Installer / meta-package
-└── README.md
+└── readme.md
 ```
 
 Each submodule is versioned and distributed independently via PyPI.

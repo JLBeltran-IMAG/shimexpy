@@ -3,7 +3,7 @@ Example script demonstrating how to use the shimexpy package.
 """
 import matplotlib.pyplot as plt
 from shimexpy import (
-    get_harmonics,
+    get_spatial_harmonics,
     get_contrasts,
     load_image
 )
@@ -15,7 +15,7 @@ def main():
     sample_img = load_image("tests/example_data/smp_roi1.tif")
 
     # Set reference image and compute harmonics
-    ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_harmonics(
+    ref_absorption, ref_scattering, ref_diff_phase, ref_block_grid = get_spatial_harmonics(
         reference_img, projected_grid=5
     )
 

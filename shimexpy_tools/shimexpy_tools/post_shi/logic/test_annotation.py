@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from PySide6.QtGui import QColor
-from annotation_manager import AnnotationManager
+from shimexpy_tools.shimexpy_tools.post_shi.logic.annotation_manager import AnnotationManager
 
 
 # ---------------------------

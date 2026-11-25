@@ -1,0 +1,341 @@
+/* ==========================================
+   SHIMEXPY — BRAND PALETTE
+   ========================================== */
+
+:root > * {
+  --shim-dark-blue: #0D5687;
+  --shim-light-blue: #387AB0;
+  --shim-yellow: #FFC938;
+  --shim-gray: #67747B;
+  --shim-white: #FFFFFF;
+
+  --shim-card-surface: var(--shim-white);
+  --shim-text: var(--shim-dark-blue);
+  --shim-muted: var(--shim-gray);
+  --shim-border: #D9E2EA;
+}
+
+/* ==========================================
+   ZENSICAL — LIGHT MODE
+   ========================================== */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--shim-dark-blue);
+  --md-primary-fg-color--light: var(--shim-light-blue);
+  --md-primary-fg-color--dark: var(--shim-dark-blue);
+  --md-accent-fg-color: var(--shim-light-blue);
+  --md-typeset-a-color: var(--shim-dark-blue);
+}
+
+/* ==========================================
+   ZENSICAL — DARK MODE
+   ========================================== */
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 206;
+  --md-primary-fg-color: #80BDE8;
+  --md-primary-fg-color--light: #A6D3F2;
+  --md-primary-fg-color--dark: var(--shim-dark-blue);
+  --md-accent-fg-color: var(--shim-yellow);
+  --md-typeset-a-color: #80BDE8;
+  --shim-card-surface: var(--md-code-bg-color);
+  --shim-border: #43515E;
+  --shim-text: #DDEAF3;
+  --shim-muted: #B0BEC9;
+}
+
+/* Global layout and header */
+.md-grid {
+  max-width: 1440px;
+}
+
+.md-header__button.md-logo img {
+  height: 50px;
+  width: auto;
+  max-height: none;
+  object-fit: contain;
+}
+
+.md-header__title {
+  visibility: hidden;
+}
+
+[data-md-color-scheme="default"] .md-tabs__link {
+  color: var(--shim-dark-blue);
+}
+
+[data-md-color-scheme="default"] .md-tabs__item--active .md-tabs__link {
+  font-weight: 600;
+}
+
+/* Home: native navigation is kept on every other page. */
+body:has(.shim-home--scientific) .md-tabs,
+body:has(.shim-home--scientific) .md-footer {
+  display: none;
+}
+
+.md-content:has(.shim-home--scientific) {
+  max-width: none;
+}
+
+.md-content__inner:has(.shim-home--scientific) {
+  max-width: none;
+  margin: 0;
+  padding-top: 0;
+}
+
+.md-typeset .shim-home--scientific {
+  width: 100%;
+  margin: 0 auto;
+  color: var(--shim-text);
+}
+
+/* Hero */
+.md-typeset .shim-home--scientific .shim-hero {
+  padding: 1rem clamp(1rem, 2vw, 2rem) clamp(2rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.md-typeset .shim-home--scientific .shim-home-logo {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto 2rem;
+}
+
+.md-typeset .shim-home--scientific .shim-hero h1 {
+  color: var(--shim-text);
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+  line-height: 1.16;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+  max-width: 100%;
+}
+
+.md-typeset .shim-home--scientific .shim-hero p {
+  color: var(--md-default-fg-color);
+  font-size: clamp(.9rem, 1.4vw, 1.05rem);
+  line-height: 1.55;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Hero buttons: Markdown places the links in a paragraph. */
+.md-typeset .shim-home--scientific .shim-actions {
+  margin-top: 1.5rem;
+}
+
+.md-typeset .shim-home--scientific .shim-actions p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .7rem;
+}
+
+.md-typeset .shim-home--scientific .shim-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: .55rem 1.05rem;
+  font-size: .84rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background .15s ease, transform .15s ease;
+}
+
+.md-typeset .shim-home--scientific .shim-button:hover {
+  transform: translateY(-1px);
+}
+
+.md-typeset .shim-home--scientific .shim-button:focus-visible,
+.md-typeset .shim-home--scientific .shim-card:focus-visible {
+  outline: 3px solid var(--md-accent-fg-color);
+  outline-offset: 3px;
+}
+
+.md-typeset .shim-home--scientific .shim-button--primary,
+.md-typeset .shim-home--scientific .shim-button--primary:hover {
+  background: var(--shim-yellow);
+  color: var(--shim-dark-blue);
+}
+
+.md-typeset .shim-home--scientific .shim-button--secondary {
+  border: 1px solid var(--md-typeset-a-color);
+  color: var(--md-typeset-a-color);
+}
+
+.md-typeset .shim-home--scientific .shim-button--secondary:hover {
+  background: var(--shim-dark-blue);
+  color: var(--shim-white);
+}
+
+/* Feature cards */
+.md-typeset .shim-home--scientific .shim-explore {
+  width: 100%;
+  max-width: 1100px;
+  margin-inline: auto;
+  padding: clamp(1rem, 2.4vw, 2rem);
+  box-sizing: border-box;
+  border-top: 1px solid var(--shim-border);
+}
+
+.md-typeset .shim-home--scientific .shim-explore h2 {
+  color: var(--shim-text);
+  font-size: 1.18rem;
+  font-weight: 750;
+  margin: 0 0 1.1rem;
+}
+
+.md-typeset .shim-home--scientific .shim-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1rem;
+}
+
+/* Stretch the Markdown paragraph wrappers along with their card links. */
+.md-typeset .shim-home--scientific .shim-card-grid > p {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+}
+
+.md-typeset .shim-home--scientific .shim-card {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--shim-card-surface);
+  border: 1px solid var(--shim-border);
+  border-radius: 10px;
+  padding: 1.15rem;
+  color: var(--shim-text);
+  text-decoration: none;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.md-typeset .shim-home--scientific .shim-card:hover {
+  color: var(--shim-text);
+  border-color: var(--shim-light-blue);
+  box-shadow: 0 6px 20px rgb(13 86 135 / 10%);
+  transform: translateY(-2px);
+}
+
+.md-typeset .shim-home--scientific .shim-card strong {
+  font-size: .95rem;
+}
+
+.md-typeset .shim-home--scientific .shim-card span {
+  color: var(--shim-muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+/* Home footer: extend only the background beyond the content width. */
+.md-typeset .shim-home--scientific .shim-home-footer {
+  height: auto;
+  margin-top: 3rem;
+  padding: 1.5em clamp(1rem, 2.4vw, 2rem);
+  background: #F1F3F5;
+  color: var(--shim-dark-blue);
+  box-shadow: 0 0 0 100vmax #F1F3F5;
+  clip-path: inset(0 -100vmax);
+  font-size: .75rem;
+}
+
+.md-typeset .shim-home--scientific .shim-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem;
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer p {
+  margin: 0 0 .75rem;
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer li {
+  margin: 0 0 .35rem;
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer a {
+  color: var(--shim-dark-blue);
+  text-decoration: underline;
+  text-underline-offset: .15em;
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer a:hover {
+  color: var(--shim-light-blue);
+}
+
+.md-typeset .shim-home--scientific .shim-home-footer a:focus-visible {
+  outline: 2px solid var(--shim-dark-blue);
+  outline-offset: 3px;
+}
+
+.md-typeset .shim-home--scientific .shim-footer-brand {
+  display: grid;
+  place-items: center;
+}
+
+.md-typeset .shim-home--scientific .shim-footer-brand p {
+  margin: 0;
+}
+
+.md-typeset .shim-home--scientific .shim-footer-brand img {
+  display: block;
+  width: 104px;
+  height: auto;
+  max-width: 100%;
+}
+
+/* Responsive layout */
+@media (max-width: 960px) {
+  .md-typeset .shim-home--scientific .shim-footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .md-typeset .shim-home--scientific .shim-hero {
+    padding-bottom: 2rem;
+  }
+
+  .md-typeset .shim-home--scientific .shim-explore {
+    padding: 1.2rem;
+  }
+
+  .md-typeset .shim-home--scientific .shim-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .md-typeset .shim-home--scientific .shim-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .shim-home--scientific .shim-button,
+  .md-typeset .shim-home--scientific .shim-card {
+    transition: none;
+  }
+
+  .md-typeset .shim-home--scientific .shim-button:hover,
+  .md-typeset .shim-home--scientific .shim-card:hover {
+    transform: none;
+  }
+}

@@ -3,7 +3,7 @@ import cupy as cp
 import imageio.v3 as iio
 
 # ===== CPU backend (the trusted one) =====
-from shimexpy import get_harmonics, get_contrasts
+from shimexpy import get_spatial_harmonics, get_contrasts
 
 # ===== GPU-native backend (new) =====
 from shimexpy_gpu import prepare_reference, process_frame
@@ -23,8 +23,8 @@ def main():
     sample_img = iio.imread(SAMPLE_IMG_PATH).astype(np.float32)
 
     # ---------- CPU (gold) ----------
-    # get_harmonics returns: (ref_abs, ref_scat_dict, ref_phase_dict, ref_block_grid)
-    ref_abs, ref_scat, ref_phase, ref_block = get_harmonics(
+    # get_spatial_harmonics returns: (ref_abs, ref_scat_dict, ref_phase_dict, ref_block_grid)
+    ref_abs, ref_scat, ref_phase, ref_block = get_spatial_harmonics(
         ref_img, PROJECTED_GRID, unwrap=UNWRAP
     )
 

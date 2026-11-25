@@ -4,7 +4,7 @@ import tifffile
 from pathlib import Path
 
 from .logging import logger
-from shimexpy import get_harmonics, get_all_harmonic_contrasts, load_image, save_image
+from shimexpy import get_spatial_harmonics, get_all_harmonic_contrasts, load_image, save_image
 
 
 def cli_export(
@@ -89,7 +89,7 @@ def execute_SHI(
     # reference_data = (ref_abs, ref_scat, ref_phase, ref_block_grid)
     reference_images = load_image(reference_paths[0])
 
-    ref_abs, ref_scat, ref_phase, ref_block_grid = get_harmonics(
+    ref_abs, ref_scat, ref_phase, ref_block_grid = get_spatial_harmonics(
         reference_images,
         projected_grid=projected_grid,
         unwrap=unwrap
